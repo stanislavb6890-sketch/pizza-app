@@ -23,7 +23,7 @@
     "db:migrate:deploy": "prisma migrate deploy --schema=db/prisma/schema.prisma",
     "db:studio": "prisma studio --schema=db/prisma/schema.prisma",
     "db:validate": "prisma validate --schema=db/prisma/schema.prisma",
-    "postinstall": "prisma generate --schema=db/prisma/schema.prisma"
+    "postinstall": "npx prisma generate --schema=db/prisma/schema.prisma"
   },
   "keywords": [
     "pizza",
@@ -34,6 +34,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@prisma/client": "^6.1.0",
     "next": "^16.1.6",
     "react": "^19.2.4",
     "react-dom": "^19.2.4"
@@ -50,6 +51,7 @@
     "@vitest/coverage-v8": "^4.0.18",
     "eslint-import-resolver-typescript": "^4.4.4",
     "jsdom": "^28.1.0",
+    "prisma": "^6.1.0",
     "typescript": "^5.9.3",
     "vitest": "^4.0.18"
   }

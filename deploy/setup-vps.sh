@@ -151,7 +151,7 @@ install_dependencies() {
     log "Установка зависимостей..."
     
     cd "$PROJECT_DIR"
-    npm ci
+    npm install
 }
 
 setup_database() {

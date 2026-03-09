@@ -77,8 +77,8 @@ install_redis() {
     
     sed -i 's/^supervised .*/supervised systemd/' /etc/redis/redis.conf
     
-    systemctl restart redis
-    systemctl enable redis
+    systemctl restart redis-server
+    systemctl enable redis-server
     
     echo "REDIS_URL=\"redis://localhost:6379\"" >> /root/.pizza_env
 }
@@ -174,6 +174,8 @@ configure_nginx() {
     log "Настройка Nginx..."
     
     cat > /etc/nginx/sites-available/pizza-delivery <<EOF
+proxy_cache_path /var/cache/nginx levels=1:2 keys_zone=static_cache:10m max_size=100m inactive=30d;
+
 server {
     listen 80;
     listen [::]:80;
@@ -241,8 +243,6 @@ server {
     gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript;
     gzip_min_length 1000;
 }
-
-proxy_cache_path /var/cache/nginx levels=1:2 keys_zone=static_cache:10m max_size=100m inactive=30d;
 EOF
 
     rm -f /etc/nginx/sites-enabled/default
@@ -293,7 +293,7 @@ print_summary() {
     echo "  pm2 restart pizza-delivery - перезапуск"
     echo "  sudo systemctl status nginx - статус Nginx"
     echo "  sudo systemctl status mysql - статус MySQL"
-    echo "  sudo systemctl status redis - статус Redis"
+    echo "  sudo systemctl status redis-server - статус Redis"
     echo ""
 }
 

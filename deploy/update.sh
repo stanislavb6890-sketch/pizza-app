@@ -4,7 +4,7 @@ set -e
 
 PROJECT_DIR="/var/www/pizza-delivery"
 BACKUP_DIR="/var/backups/pizza-delivery"
-TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+TIMESTAMP="$(date +%Y%m%d_%H%M%S)"
 
 log() {
     echo -e "\033[0;32m[$(date +'%H:%M:%S')] $1\033[0m"
@@ -20,7 +20,7 @@ backup_db() {
     
     mkdir -p "$BACKUP_DIR"
     
-    source "$PROJECT_DIR/.env.production"
+    source "$PROJECT_DIR/.env"
     
     mysqldump --defaults-extra-file=<(echo "[client]
 user=$(echo $DATABASE_URL | sed -n 's/.*\/\/\([^:]*\):.*/\1/p')
@@ -51,7 +51,7 @@ install_deps() {
     log "Установка зависимостей..."
     
     cd "$PROJECT_DIR"
-    npm ci
+    npm install
 }
 
 build() {

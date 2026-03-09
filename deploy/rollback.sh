@@ -16,7 +16,7 @@ error() {
 
 list_backups() {
     log "Доступные бекапы базы данных:"
-    ls -lh "$BACKUP_DIR"/db_*.sql.gz 2>/dev/null || echo "Бекапов не найдено"
+    ls -lh "$BACKUP_DIR"/db/*.sql.gz 2>/dev/null || echo "Бекапов не найдено"
 }
 
 list_commits() {
@@ -34,7 +34,7 @@ restore_db() {
     
     log "Восстановление БД из $backup_file..."
     
-    source "$PROJECT_DIR/.env.production"
+    source "$PROJECT_DIR/.env"
     
     gunzip -c "$backup_file" | mysql --defaults-extra-file=<(echo "[client]
 user=$(echo $DATABASE_URL | sed -n 's/.*\/\/\([^:]*\):.*/\1/p')
@@ -76,7 +76,7 @@ main() {
         1)
             read -p "Введите хеш коммита для отката: " commit
             rollback_code "$commit"
-            npm ci --prefix "$PROJECT_DIR"
+            npm install --prefix "$PROJECT_DIR"
             npm run build --prefix "$PROJECT_DIR"
             pm2 restart pizza-delivery
             ;;
@@ -92,7 +92,7 @@ main() {
             pm2 stop pizza-delivery
             restore_db "$backup_file"
             rollback_code "$commit"
-            npm ci --prefix "$PROJECT_DIR"
+            npm install --prefix "$PROJECT_DIR"
             npm run build --prefix "$PROJECT_DIR"
             pm2 start pizza-delivery
             ;;

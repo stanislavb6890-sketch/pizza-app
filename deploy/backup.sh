@@ -2,7 +2,7 @@
 
 PROJECT_DIR="/var/www/pizza-delivery"
 BACKUP_DIR="/var/backups/pizza-delivery"
-TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+TIMESTAMP="$(date +%Y%m%d_%H%M%S)"
 RETENTION_DAYS=14
 
 log() {
@@ -13,7 +13,7 @@ log "Начало резервного копирования"
 
 mkdir -p "$BACKUP_DIR"/{db,files,env}
 
-source "$PROJECT_DIR/.env.production" 2>/dev/null || { log "ERROR: .env.production not found"; exit 1; }
+source "$PROJECT_DIR/.env" 2>/dev/null || { log "ERROR: .env not found"; exit 1; }
 
 log "Бекап базы данных..."
 DB_USER=$(echo "$DATABASE_URL" | sed -n 's/.*\/\/\([^:]*\):.*/\1/p')
@@ -31,7 +31,7 @@ if [[ -d "$PROJECT_DIR/public/uploads" ]]; then
 fi
 
 log "Бекап переменных окружения..."
-cp "$PROJECT_DIR/.env.production" "$BACKUP_DIR/env/env_$TIMESTAMP"
+cp "$PROJECT_DIR/.env" "$BACKUP_DIR/env/env_$TIMESTAMP"
 
 log "Бекап конфига Nginx..."
 cp /etc/nginx/sites-available/pizza-delivery "$BACKUP_DIR/nginx_$TIMESTAMP.conf"

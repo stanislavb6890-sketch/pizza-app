@@ -2,7 +2,7 @@
 
 set -e
 
-REPO_URL="https://github.com/stanislavb6890-sketch/pizza.git"
+REPO_URL="https://github.com/stanislavb6890-sketch/pizza-app.git"
 PROJECT_DIR="/var/www/pizza-delivery"
 DOMAIN=""
 EMAIL=""
@@ -128,12 +128,12 @@ setup_env() {
     local JWT_SECRET=$(openssl rand -base64 32)
     
     if [[ -f .env.example ]]; then
-        cp .env.example .env.production
+        cp .env.example .env
     else
-        touch .env.production
+        touch .env
     fi
     
-    cat >> .env.production <<EOF
+    cat >> .env <<EOF
 
 NEXT_PUBLIC_APP_URL=https://${DOMAIN}
 NEXTAUTH_URL=https://${DOMAIN}
@@ -142,9 +142,9 @@ JWT_SECRET=${JWT_SECRET}
 NODE_ENV=production
 EOF
     
-    cat /root/.pizza_env >> .env.production
+    cat /root/.pizza_env >> .env
     
-    log ".env.production создан"
+    log ".env создан"
 }
 
 install_dependencies() {
@@ -284,7 +284,7 @@ print_summary() {
     echo ""
     echo "Сайт: https://${DOMAIN}"
     echo "Папка проекта: ${PROJECT_DIR}"
-    echo "Переменные окружения: ${PROJECT_DIR}/.env.production"
+    echo "Переменные окружения: ${PROJECT_DIR}/.env"
     echo "Учетные данные БД: /root/.pizza_env"
     echo ""
     echo "Команды управления:"

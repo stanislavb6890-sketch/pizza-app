@@ -81,7 +81,6 @@ model Category {
   deletedAt   DateTime? @map("deleted_at")
 
   subCategories SubCategory[]
-  products      Product[]
 
   @@index([slug])
   @@map("categories")

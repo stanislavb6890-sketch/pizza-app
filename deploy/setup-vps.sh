@@ -29,19 +29,33 @@ get_params() {
     if [[ -z "$DOMAIN" || -z "$EMAIL" ]]; then
         error "Домен и email обязательны"
     fi
+    
+    log "Домен: $DOMAIN"
+    log "Email: $EMAIL"
+}
+
+init_env_file() {
+    log "Создание файла настроек..."
+    rm -f /root/.pizza_env
+    touch /root/.pizza_env
+    chmod 600 /root/.pizza_env
 }
 
 update_system() {
     log "Обновление системы..."
+    export DEBIAN_FRONTEND=noninteractive
     apt update && apt upgrade -y
-    apt install -y curl wget git unzip software-properties-common
+    apt install -y curl wget git unzip software-properties-common ca-certificates lsb-release
 }
 
 install_nodejs() {
     log "Установка Node.js 20.x..."
+    
     curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
     apt install -y nodejs
+    
     npm install -g pm2
+    
     node --version
     npm --version
 }
@@ -49,12 +63,15 @@ install_nodejs() {
 install_mysql() {
     log "Установка MySQL..."
     export DEBIAN_FRONTEND=noninteractive
+    
     apt install -y mysql-server
     
     systemctl start mysql
     systemctl enable mysql
     
-    local DB_PASS=$(openssl rand -base64 12)
+    sleep 3
+    
+    local DB_PASS=$(openssl rand -base64 12 | tr -dc 'a-zA-Z0-9' | head -c 16)
     local DB_NAME="pizza_delivery"
     local DB_USER="pizza_user"
     
@@ -65,22 +82,25 @@ GRANT ALL PRIVILEGES ON ${DB_NAME}.* TO '${DB_USER}'@'localhost';
 FLUSH PRIVILEGES;
 EOF
     
-    echo "MYSQL_ROOT_PASSWORD=" >> /root/.pizza_env
-    echo "DATABASE_URL=\"mysql://${DB_USER}:${DB_PASS}@localhost:3306/${DB_NAME}\"" >> /root/.pizza_env
+    echo "DATABASE_URL=\"mysql://${DB_USER}:${DB_PASS}@localhost:3306/${DB_NAME}?schema=public\"" >> /root/.pizza_env
     
-    log "MySQL установлен. Пароль сохранен в /root/.pizza_env"
+    log "MySQL установлен"
 }
 
 install_redis() {
     log "Установка Redis..."
     apt install -y redis-server
     
-    sed -i 's/^supervised .*/supervised systemd/' /etc/redis/redis.conf
+    sed -i 's/^supervised .*/supervised systemd/' /etc/redis/redis.conf || true
     
     systemctl restart redis-server
     systemctl enable redis-server
     
+    sleep 2
+    
     echo "REDIS_URL=\"redis://localhost:6379\"" >> /root/.pizza_env
+    
+    log "Redis установлен"
 }
 
 install_nginx() {
@@ -89,34 +109,62 @@ install_nginx() {
     
     systemctl start nginx
     systemctl enable nginx
+    
+    log "Nginx установлен"
 }
 
 install_certbot() {
     log "Установка Certbot..."
     apt install -y certbot python3-certbot-nginx
+    
+    log "Certbot установлен"
+}
+
+create_temp_nginx_config() {
+    log "Создание временного конфига Nginx..."
+    
+    cat > /etc/nginx/sites-available/pizza-temp <<EOF
+server {
+    listen 80;
+    listen [::]:80;
+    server_name ${DOMAIN} www.${DOMAIN};
+    
+    location / {
+        root /var/www/html;
+        index index.html;
+    }
+}
+EOF
+    
+    rm -f /etc/nginx/sites-enabled/default
+    ln -sf /etc/nginx/sites-available/pizza-temp /etc/nginx/sites-enabled/
+    
+    nginx -t && systemctl reload nginx
+    
+    log "Временный конфиг создан"
 }
 
 setup_ssl() {
     log "Настройка SSL-сертификата для $DOMAIN..."
     
-    nginx -t && systemctl reload nginx
-    
     certbot --nginx -d "$DOMAIN" -d "www.$DOMAIN" \
-        --non-interactive --agree-tos --email "$EMAIL" \
-        --redirect
+        --non-interactive --agree-tos --email "$EMAIL" --redirect || error "Ошибка получения SSL"
     
     (crontab -l 2>/dev/null; echo "0 3 * * * certbot renew --quiet --post-hook 'systemctl reload nginx'") | crontab -
     
-    log "SSL настроен. Автообновление добавлено в crontab"
+    log "SSL настроен"
 }
 
 clone_project() {
     log "Клонирование проекта..."
     
+    mkdir -p "$(dirname "$PROJECT_DIR")"
     rm -rf "$PROJECT_DIR"
     git clone "$REPO_URL" "$PROJECT_DIR"
     
     cd "$PROJECT_DIR"
+    
+    log "Проект склонирован"
 }
 
 setup_env() {
@@ -151,7 +199,9 @@ install_dependencies() {
     log "Установка зависимостей..."
     
     cd "$PROJECT_DIR"
-    npm install
+    npm install --legacy-peer-deps || npm install
+    
+    log "Зависимости установлены"
 }
 
 setup_database() {
@@ -159,15 +209,19 @@ setup_database() {
     
     cd "$PROJECT_DIR"
     
-    npx prisma generate
-    npx prisma migrate deploy
+    npx prisma generate || error "Ошибка генерации Prisma"
+    npx prisma db push --accept-data-loss || error "Ошибка миграции БД"
+    
+    log "База данных настроена"
 }
 
 build_project() {
     log "Сборка проекта..."
     
     cd "$PROJECT_DIR"
-    npm run build
+    npm run build || error "Ошибка сборки"
+    
+    log "Проект собран"
 }
 
 configure_nginx() {
@@ -246,9 +300,12 @@ server {
 EOF
 
     rm -f /etc/nginx/sites-enabled/default
+    rm -f /etc/nginx/sites-enabled/pizza-temp
     ln -sf /etc/nginx/sites-available/pizza-delivery /etc/nginx/sites-enabled/
     
     nginx -t && systemctl reload nginx
+    
+    log "Nginx настроен"
 }
 
 start_app() {
@@ -257,9 +314,19 @@ start_app() {
     cd "$PROJECT_DIR"
     
     pm2 delete pizza-delivery 2>/dev/null || true
+    
     pm2 start npm --name "pizza-delivery" -- start
+    
     pm2 save
-    pm2 startup systemd -u root --hp /root
+    
+    env_path=$(which env)
+    if [ -f /etc/systemd/system/pm2-root.service ]; then
+        systemctl enable pm2-root
+    else
+        pm2 startup systemd -u root --hp /root 2>/dev/null || pm2 startup
+    fi
+    
+    log "Приложение запущено"
 }
 
 setup_firewall() {
@@ -270,11 +337,14 @@ setup_firewall() {
     ufw --force reset
     ufw default deny incoming
     ufw default allow outgoing
-    ufw allow ssh
-    ufw allow 'Nginx Full'
+    ufw allow 22/tcp comment 'SSH'
+    ufw allow 80/tcp comment 'HTTP'
+    ufw allow 443/tcp comment 'HTTPS'
     ufw --force enable
     
-    ufw status
+    ufw status verbose
+    
+    log "Файрвол настроен"
 }
 
 print_summary() {
@@ -306,6 +376,7 @@ main() {
     
     check_root
     get_params
+    init_env_file
     
     update_system
     install_nodejs
@@ -313,13 +384,14 @@ main() {
     install_redis
     install_nginx
     install_certbot
+    create_temp_nginx_config
     clone_project
     setup_env
     install_dependencies
+    setup_database
     build_project
     setup_ssl
     configure_nginx
-    setup_database
     start_app
     setup_firewall
     print_summary

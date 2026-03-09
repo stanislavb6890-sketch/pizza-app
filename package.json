@@ -8,51 +8,20 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "lint:fix": "next lint --fix",
-    "format": "prettier --write .",
-    "format:check": "prettier --check .",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage",
-    "test:integration": "vitest run --config vitest.integration.config.ts",
-    "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui",
-    "db:generate": "prisma generate --schema=db/prisma/schema.prisma",
-    "db:push": "prisma db push --schema=db/prisma/schema.prisma",
-    "db:migrate": "prisma migrate dev --schema=db/prisma/schema.prisma",
-    "db:migrate:deploy": "prisma migrate deploy --schema=db/prisma/schema.prisma",
-    "db:studio": "prisma studio --schema=db/prisma/schema.prisma",
-    "db:validate": "prisma validate --schema=db/prisma/schema.prisma",
-    "postinstall": "npx prisma generate --schema=db/prisma/schema.prisma"
+    "db:generate": "npx prisma generate --schema=db/prisma/schema.prisma",
+    "db:migrate:deploy": "npx prisma migrate deploy --schema=db/prisma/schema.prisma"
   },
-  "keywords": [
-    "pizza",
-    "delivery",
-    "ecommerce",
-    "nextjs"
-  ],
-  "author": "",
-  "license": "ISC",
   "dependencies": {
-"@prisma/client": "6",
-"next": "^16.1.6",
-    "react": "^19.2.4",
-    "react-dom": "^19.2.4"
+    "@prisma/client": "5.22.0",
+    "next": "14.2.15",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
   },
   "devDependencies": {
-    "@testing-library/jest-dom": "^6.9.1",
-    "@testing-library/react": "^16.3.2",
-    "@types/bcryptjs": "^2.4.6",
-    "@types/jsonwebtoken": "^9.0.10",
-    "@types/node": "^25.3.5",
-    "@types/react": "^19.2.14",
-    "@types/uuid": "^10.0.0",
-    "@vitejs/plugin-react": "^5.1.4",
-    "@vitest/coverage-v8": "^4.0.18",
-    "eslint-import-resolver-typescript": "^4.4.4",
-    "jsdom": "^28.1.0",
-    "prisma": "6",
-    "typescript": "^5.9.3",
-    "vitest": "^4.0.18"
+    "@types/node": "20.14.0",
+    "@types/react": "18.3.0",
+    "@types/react-dom": "18.3.0",
+    "prisma": "5.22.0",
+    "typescript": "5.5.0"
   }
 }

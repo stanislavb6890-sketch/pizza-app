@@ -1,100 +1,86 @@
 # AGENTS.md
 
-This document provides guidance for AI coding agents working in this Pizza Delivery Platform codebase.
-
----
-
-## Project Overview
-
-Pizza Delivery Platform is a production-grade ecommerce application built with Next.js (App Router), TypeScript, MySQL, Prisma, and Redis. The architecture follows Clean Architecture + Domain-Driven Design (DDD) principles.
+Pizza Delivery Platform - AI Coding Agent Guidelines
 
 ---
 
 ## Build/Lint/Test Commands
 
 ### Development
-
 ```bash
-npm run dev          # Start development server
+npm run dev          # Start dev server (Next.js)
 npm run build        # Production build
 npm run start        # Start production server
 ```
 
-### Linting & Formatting
-
+### Linting
 ```bash
 npm run lint         # Run ESLint
-npm run lint:fix     # Fix ESLint errors
-npm run format       # Format code with Prettier
-npm run format:check # Check formatting without changes
 ```
 
-### Testing
-
+### Testing (Vitest)
 ```bash
-npm run test                    # Run all unit tests (Vitest)
-npm run test:watch              # Run tests in watch mode
-npm run test:coverage           # Run tests with coverage report
-npm run test -- path/to/file.ts # Run single test file
-npm run test -- -t "test name"  # Run tests matching pattern
-
-npm run test:integration        # Run integration tests
-npm run test:e2e                # Run E2E tests (Playwright)
-npm run test:e2e:ui             # Run E2E tests with UI
+npx vitest                    # Run all tests
+npx vitest run                # Run once (no watch)
+npx vitest -- path/to/file.ts # Run single test file
+npx vitest -t "test name"     # Run tests matching pattern
+npx vitest --coverage         # Run with coverage
 ```
 
 ### Database (Prisma)
-
 ```bash
-npx prisma validate             # Validate schema
-npx prisma migrate dev          # Create and apply migration
-npx prisma migrate deploy       # Apply migrations (production)
-npx prisma generate             # Generate Prisma Client
-npx prisma studio               # Open Prisma Studio
-npx prisma db push              # Push schema changes (dev only)
+npx prisma generate           # Generate Prisma Client
+npx prisma db push            # Push schema to DB
+npx prisma migrate dev        # Create & apply migration
+npx prisma studio             # Open Prisma Studio
 ```
 
 ---
 
 ## Project Structure
-
 ```
-app/                    # Next.js App Router pages and routes
+app/                    # Next.js App Router pages/routes
   (public)/            # Public routes (menu, cart, checkout)
-  (admin)/             # Admin panel routes
+  (auth)/              # Auth routes (login, register)
+  admin/               # Admin panel
   api/                 # API Route Handlers
+    auth/              # Authentication endpoints
+    admin/             # Admin API endpoints
+    cart/              # Cart endpoints
+    products/          # Product endpoints
+    orders/            # Order endpoints
 components/            # Reusable UI components
-  ui/                  # Base UI components (Button, Input, etc.)
+  ui/                  # Base components (Button, Input, Card, Badge)
   features/            # Feature-specific components
-modules/               # Domain modules (bounded contexts)
+modules/               # Domain modules (Clean Architecture)
   cart/
-    domain/            # Entities, value objects, domain events
-    application/       # Use cases, application services
-    infrastructure/    # Repository implementations
+    domain/            # Entities (Cart, CartItem), repositories
+    application/       # Use cases (add-to-cart, get-cart, etc.)
+    infrastructure/    # Redis implementation
   order/
+    domain/            # Entities (Order), repositories
+    application/       # Use cases (create-order, cancel-order, etc.)
   product/
+    domain/            # Entities, repositories
+    application/       # Use cases
+    infrastructure/    # Prisma implementation
   user/
+    domain/            # Entities, repositories
+    application/       # Use cases (login, register, refresh-token)
   delivery/
-core/                  # Cross-domain shared utilities
-  auth/                # Authentication interfaces, token types
-  config/              # Environment configuration
-  logger/              # Logging abstraction
-  validation/          # DTO validation schemas (Zod)
-db/                    # Database configuration
-  prisma/
-    schema.prisma
-services/              # External service integrations
-  payment/             # Payment providers (YooKassa, Stripe)
-  email/
-  notification/
-infra/                 # Infrastructure adapters
-  redis/
-  queue/
-  storage/
-tests/                 # Test files
-  unit/
-  integration/
-  e2e/
+    domain/            # Entities, repositories
+core/                  # Shared utilities
+  auth/               # JWT service, auth interfaces
+  config/             # Environment configuration
+  logger/             # Logging + metrics
+  validation/         # Zod schemas
+  errors/             # ApiError class
+db/prisma/            # Database schema
+services/             # External integrations
+  payment/            # Payment providers (YooKassa, Stripe)
+infra/                # Infrastructure
+  redis/              # Redis client
+tests/unit/           # Unit tests (Vitest)
 ```
 
 ---
@@ -102,251 +88,107 @@ tests/                 # Test files
 ## Code Style Guidelines
 
 ### TypeScript
+- Strict mode - no `any`, use `unknown` and narrow it
+- Explicit return types for public functions
+- Interfaces for object shapes, types for unions
+- Use `import type` for type-only imports
 
-- **Strict mode enabled** - all code must pass strict type checking
-- **No `any`** - use `unknown` when type is truly unknown, then narrow it
-- **Explicit return types** for public functions and methods
-- **Prefer interfaces** for object shapes, types for unions/primitives
-- **Use const assertions** for literal types and readonly arrays
-
-```typescript
-// Good
-interface CreateOrderInput {
-  userId: string;
-  items: OrderItemInput[];
-}
-
-export async function createOrder(input: CreateOrderInput): Promise<Order> {
-  // ...
-}
-
-// Bad
-export async function createOrder(input: any) {
-  // ...
-}
-```
-
-### Imports
-
-Import order (enforced by ESLint):
-
-1. React/Next.js imports
+### Imports Order
+1. React/Next.js
 2. Third-party libraries
 3. Internal aliases (`@/`, `@modules/`, `@core/`)
-4. Relative imports (same directory)
-5. Type imports (use `import type`)
-
-```typescript
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-
-import { z } from 'zod';
-import { useQuery } from '@tanstack/react-query';
-
-import { Button } from '@/components/ui/button';
-import { createOrder } from '@/modules/order/application/use-cases';
-import type { Order } from '@/modules/order/domain/entities';
-```
+4. Relative imports
 
 ### Naming Conventions
-
 | Type | Convention | Example |
 |------|------------|---------|
-| Components | PascalCase | `ProductCard`, `CheckoutForm` |
-| Functions | camelCase | `createOrder`, `validatePayment` |
-| Variables | camelCase | `orderItems`, `totalPrice` |
-| Constants | SCREAMING_SNAKE_CASE | `MAX_CART_ITEMS`, `DEFAULT_TTL` |
+| Components | PascalCase | `ProductCard` |
+| Functions/vars | camelCase | `createOrder` |
+| Constants | SCREAMING_SNAKE | `MAX_ITEMS` |
 | Files (components) | PascalCase | `ProductCard.tsx` |
-| Files (utilities) | kebab-case | `format-price.ts` |
-| Files (pages) | kebab-case | `checkout-success.tsx` |
-| Interfaces | PascalCase, no `I` prefix | `OrderRepository`, `PaymentService` |
-| Types | PascalCase | `OrderStatus`, `PaymentResult` |
-| Enums | PascalCase | `OrderStatus`, `UserRole` |
+| Files (utils) | kebab-case | `format-price.ts` |
+| Interfaces | PascalCase, no I | `OrderRepository` |
 
 ### Formatting
-
-- **Indentation**: 2 spaces
-- **Quotes**: Single quotes for strings, double quotes for JSX attributes
-- **Semicolons**: Required
-- **Trailing commas**: Always (ES5 compatible)
-- **Max line length**: 100 characters
-- **Arrow functions**: Always parentheses for parameters
-
-```typescript
-const calculateTotal = (items: CartItem[]): number => {
-  return items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-};
-```
+- Indentation: 2 spaces
+- Quotes: Single quotes (double for JSX)
+- Semicolons: Required
+- Trailing commas: Always
 
 ---
 
-## Architecture Guidelines
+## Architecture
 
 ### Clean Architecture Layers
+Dependencies flow inward: Infrastructure → Application → Domain
 
-Dependencies flow **inward only**:
-
-```
-Infrastructure → Application → Domain
-```
-
-- **Domain layer** (`modules/*/domain`): No external dependencies
-- **Application layer** (`modules/*/application`): Depends only on domain
-- **Infrastructure layer** (`modules/*/infrastructure`): Implements interfaces from application
-
-### Domain-Driven Design
-
-- **Entities**: Objects with identity (User, Order, Product)
-- **Value Objects**: Immutable, no identity (Money, Address, Email)
-- **Aggregates**: Consistency boundaries (Order with OrderItems)
-- **Repositories**: Abstract data access, defined in domain, implemented in infrastructure
-
-```typescript
-// Domain - entity
-export class Order {
-  private constructor(
-    public readonly id: string,
-    public readonly userId: string,
-    public readonly items: OrderItem[],
-    public status: OrderStatus,
-  ) {}
-
-  static create(input: CreateOrderInput): Order {
-    // Domain validation and creation logic
-  }
-}
-
-// Application - use case
-export class CreateOrderUseCase {
-  constructor(private readonly orderRepository: OrderRepository) {}
-
-  async execute(input: CreateOrderInput): Promise<Order> {
-    // Use case logic
-  }
-}
-```
+- **Domain**: No external dependencies (entities, value objects)
+- **Application**: Depends only on domain (use cases)
+- **Infrastructure**: Implements domain interfaces (repositories)
 
 ---
 
 ## Error Handling
 
 ### API Routes
-
-Use consistent error response format:
-
 ```typescript
-// core/errors/api-error.ts
-export class ApiError extends Error {
+class ApiError extends Error {
   constructor(
     public statusCode: number,
     public code: string,
     message: string,
-    public details?: unknown,
-  ) {
-    super(message);
-  }
+    public details?: unknown
+  ) { super(message); }
 }
 
-// Usage in route handlers
-export async function POST(request: Request) {
-  try {
-    // ...
-  } catch (error) {
-    if (error instanceof ApiError) {
-      return NextResponse.json(
-        { error: error.code, message: error.message },
-        { status: error.statusCode },
-      );
-    }
+// In route handlers:
+catch (error) {
+  if (error instanceof ApiError) {
     return NextResponse.json(
-      { error: 'INTERNAL_ERROR', message: 'An unexpected error occurred' },
-      { status: 500 },
+      { error: error.code, message: error.message },
+      { status: error.statusCode }
     );
   }
+  return NextResponse.json(
+    { error: 'INTERNAL_ERROR', message: 'Unexpected error' },
+    { status: 500 }
+  );
 }
 ```
 
 ### Validation
-
-Use Zod schemas for all external input:
-
+Use Zod for all external input:
 ```typescript
-import { z } from 'zod';
-
-export const createOrderSchema = z.object({
+const createOrderSchema = z.object({
   items: z.array(z.object({
     productId: z.string().uuid(),
-    quantity: z.number().int().positive(),
-  })).min(1),
-  addressId: z.string().uuid(),
+    quantity: z.number().int().positive()
+  })).min(1)
 });
-
 export type CreateOrderInput = z.infer<typeof createOrderSchema>;
 ```
 
 ---
 
-## Testing Guidelines
-
-### Unit Tests (Vitest)
-
+## Testing
 - Test domain logic in isolation
-- Test use cases with mocked repositories
-- Aim for 80% coverage on critical modules (`order`, `payment`, `cart`)
-
-```typescript
-describe('Order', () => {
-  it('should calculate total correctly', () => {
-    const order = Order.create({ items: mockItems });
-    expect(order.total).toBe(expectedTotal);
-  });
-});
-```
-
-### Integration Tests
-
-- Use test database with transactions (rollback after each test)
-- Test repository implementations
-- Test API endpoints
-
-### E2E Tests (Playwright)
-
-- Test critical user flows: browse → cart → checkout → payment
-- Test admin operations
-- Run against staging environment
+- Use mocked repositories for use cases
+- Test files: `tests/unit/**/*.test.ts`
 
 ---
 
 ## Security
-
-- **Never commit secrets** - use environment variables
-- **Validate all input** at API boundaries with Zod
-- **Use parameterized queries** (Prisma handles this)
-- **Sanitize user content** before rendering
-- **Rate limit** public endpoints (Redis)
-- **CSRF protection** enabled for session-based routes
-- **HTTP-only cookies** for authentication tokens
+- Never commit secrets - use env variables
+- Validate all input with Zod
+- Use parameterized queries (Prisma)
+- HTTP-only cookies for auth tokens
 
 ---
 
-## Git Commit Conventions
-
-Use conventional commits:
-
+## Git Commits
 ```
-feat: add order cancellation feature
-fix: correct cart total calculation
-refactor: extract payment validation to core
-test: add unit tests for order entity
-docs: update API documentation
-chore: update dependencies
+feat: add order cancellation
+fix: correct cart total
+refactor: extract payment validation
+test: add order entity tests
 ```
-
----
-
-## Notes
-
-- Run `npm run lint` and `npm run test` before committing
-- All new features require corresponding tests
-- Follow existing patterns in the codebase
-- Keep domain logic pure (no external side effects)

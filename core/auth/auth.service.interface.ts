@@ -14,6 +14,7 @@ export interface AuthService {
   generateTokenPair(payload: TokenPayload): Promise<TokenPair>;
   verifyAccessToken(token: string): Promise<TokenPayload>;
   verifyRefreshToken(token: string): Promise<TokenPayload>;
+  verifyAccessTokenSync(token: string): TokenPayload;
   revokeRefreshToken(token: string): Promise<void>;
   hashPassword(password: string): Promise<string>;
   comparePassword(password: string, hash: string): Promise<boolean>;

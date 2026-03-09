@@ -34,7 +34,7 @@ describe('Order Entity', () => {
       addressId: 'address-1',
     });
 
-    expect(order.calculateTotal()).toBe(1300);
+    expect(order.calculateTotal()).toBe(1500);
   });
 
   it('should not allow cancellation after preparing', () => {

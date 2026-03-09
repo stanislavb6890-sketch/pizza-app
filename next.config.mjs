@@ -4,7 +4,7 @@ const nextConfig = {
   poweredByHeader: false,
   output: 'standalone',
   experimental: {
-    typedRoutes: true,
+    // typedRoutes temporarily disabled due to Link type issues
   },
   async headers() {
     return [

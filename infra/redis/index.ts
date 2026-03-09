@@ -30,43 +30,54 @@ export async function closeRedisClient(): Promise<void> {
 }
 
 export class RedisCacheService {
-  constructor(private client: RedisClientType) {}
+  constructor(private client?: RedisClientType) {}
+
+  private async getClient(): Promise<RedisClientType> {
+    if (this.client) return this.client;
+    return getRedisClient();
+  }
 
   async get<T>(key: string): Promise<T | null> {
-    const data = await this.client.get(key);
+    const client = await this.getClient();
+    const data = await client.get(key);
     if (!data) return null;
     return JSON.parse(data) as T;
   }
 
   async set<T>(key: string, value: T, ttlSeconds?: number): Promise<void> {
+    const client = await this.getClient();
     const data = JSON.stringify(value);
     if (ttlSeconds) {
-      await this.client.setEx(key, ttlSeconds, data);
+      await client.setEx(key, ttlSeconds, data);
     } else {
-      await this.client.set(key, data);
+      await client.set(key, data);
     }
   }
 
   async delete(key: string): Promise<void> {
-    await this.client.del(key);
+    const client = await this.getClient();
+    await client.del(key);
   }
 
   async deletePattern(pattern: string): Promise<void> {
-    const keys = await this.client.keys(pattern);
+    const client = await this.getClient();
+    const keys = await client.keys(pattern);
     if (keys.length > 0) {
-      await this.client.del(keys);
+      await client.del(keys);
     }
   }
 
   async exists(key: string): Promise<boolean> {
-    const result = await this.client.exists(key);
+    const client = await this.getClient();
+    const result = await client.exists(key);
     return result === 1;
   }
 
   async increment(key: string, ttlSeconds?: number): Promise<number> {
-    const result = await this.client.incr(key);
+    const client = await this.getClient();
+    const result = await client.incr(key);
     if (ttlSeconds && result === 1) {
-      await this.client.expire(key, ttlSeconds);
+      await client.expire(key, ttlSeconds);
     }
     return result;
   }

@@ -13,6 +13,7 @@ interface Product {
   price: number;
   discountPrice?: number;
   description?: string;
+  composition?: string;
   imageUrl?: string;
   weight?: number;
   isAvailable: boolean;
@@ -23,7 +24,17 @@ interface Product {
     name: string;
     slug: string;
   };
+  extras?: ProductExtra[];
   createdAt: string;
+}
+
+interface ProductExtra {
+  id: string;
+  name: string;
+  slug: string;
+  price: number;
+  isDefault: boolean;
+  isActive: boolean;
 }
 
 interface Category {
@@ -33,6 +44,17 @@ interface Category {
   subCategories: { id: string; name: string; slug: string }[];
 }
 
+function transliterate(text: string): string {
+  const ru: Record<string, string> = {
+    'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'yo',
+    'ж': 'zh', 'з': 'z', 'и': 'i', 'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm',
+    'н': 'n', 'о': 'o', 'п': 'p', 'р': 'r', 'с': 's', 'т': 't', 'у': 'u',
+    'ф': 'f', 'х': 'h', 'ц': 'ts', 'ч': 'ch', 'ш': 'sh', 'щ': 'sch', 'ъ': '',
+    'ы': 'y', 'ь': '', 'э': 'e', 'ю': 'yu', 'я': 'ya', ' ': '-'
+  };
+  return text.toLowerCase().split('').map(c => ru[c] || c.replace(/[^a-z0-9]/g, '')).join('').replace(/-+/g, '-').replace(/^-|-$/g, '');
+}
+
 export default function AdminProducts() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -40,10 +62,14 @@ export default function AdminProducts() {
   const [showForm, setShowForm] = useState(false);
   const [editProduct, setEditProduct] = useState<Product | null>(null);
   const [saving, setSaving] = useState(false);
+  const [showExtras, setShowExtras] = useState(false);
+  const [extras, setExtras] = useState<ProductExtra[]>([]);
+  const [newExtra, setNewExtra] = useState({ name: '', price: '' });
   const [formData, setFormData] = useState({
     name: '',
     slug: '',
     description: '',
+    composition: '',
     price: '',
     discountPrice: '',
     weight: '',
@@ -78,10 +104,7 @@ export default function AdminProducts() {
   };
 
   const generateSlug = (name: string) => {
-    return name
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/(^-|-$)/g, '');
+    return transliterate(name);
   };
 
   const handleNameChange = (name: string) => {
@@ -95,8 +118,8 @@ export default function AdminProducts() {
     try {
       const payload = {
         name: formData.name,
-        slug: formData.slug,
         description: formData.description || undefined,
+        composition: formData.composition || undefined,
         price: parseFloat(formData.price),
         discountPrice: formData.discountPrice ? parseFloat(formData.discountPrice) : undefined,
         weight: formData.weight ? parseInt(formData.weight) : undefined,
@@ -128,12 +151,13 @@ export default function AdminProducts() {
     }
   };
 
-  const handleEdit = (product: Product) => {
+  const handleEdit = async (product: Product) => {
     setEditProduct(product);
     setFormData({
       name: product.name,
       slug: product.slug,
       description: product.description || '',
+      composition: product.composition || '',
       price: String(product.price),
       discountPrice: product.discountPrice ? String(product.discountPrice) : '',
       weight: product.weight ? String(product.weight) : '',
@@ -141,6 +165,12 @@ export default function AdminProducts() {
       subCategoryId: product.subCategory?.id || '',
       isFeatured: product.isFeatured,
     });
+    
+    if (product.extras) {
+      setExtras(product.extras);
+    } else {
+      setExtras([]);
+    }
   };
 
   const handleUpdate = async (e: React.FormEvent) => {
@@ -151,8 +181,8 @@ export default function AdminProducts() {
     try {
       const payload = {
         name: formData.name,
-        slug: formData.slug,
         description: formData.description || undefined,
+        composition: formData.composition || undefined,
         price: parseFloat(formData.price),
         discountPrice: formData.discountPrice ? parseFloat(formData.discountPrice) : undefined,
         weight: formData.weight ? parseInt(formData.weight) : undefined,
@@ -200,11 +230,64 @@ export default function AdminProducts() {
     }
   };
 
+  const fetchExtras = async (productId: string) => {
+    try {
+      const res = await fetch(`/api/admin/extras?productId=${productId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setExtras(data.data || []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch extras:', error);
+    }
+  };
+
+  const handleAddExtra = async () => {
+    if (!editProduct || !newExtra.name || !newExtra.price) return;
+    
+    try {
+      const slug = transliterate(newExtra.name);
+      const response = await fetch('/api/admin/extras', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productId: editProduct.id,
+          name: newExtra.name,
+          slug,
+          price: parseFloat(newExtra.price),
+        }),
+      });
+
+      if (response.ok) {
+        const extra = await response.json();
+        setExtras([...extras, extra.data]);
+        setNewExtra({ name: '', price: '' });
+      }
+    } catch (error) {
+      console.error('Failed to add extra:', error);
+    }
+  };
+
+  const handleDeleteExtra = async (extraId: string) => {
+    try {
+      const response = await fetch(`/api/admin/extras/${extraId}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        setExtras(extras.filter(e => e.id !== extraId));
+      }
+    } catch (error) {
+      console.error('Failed to delete extra:', error);
+    }
+  };
+
   const resetForm = () => {
     setFormData({
       name: '',
       slug: '',
       description: '',
+      composition: '',
       price: '',
       discountPrice: '',
       weight: '',
@@ -212,6 +295,7 @@ export default function AdminProducts() {
       subCategoryId: '',
       isFeatured: false,
     });
+    setExtras([]);
   };
 
   const closeModal = () => {
@@ -249,12 +333,11 @@ export default function AdminProducts() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="slug">Slug *</Label>
+                  <Label htmlFor="slug">Slug (формируется автоматически)</Label>
                   <Input
                     id="slug"
                     value={formData.slug}
                     onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-                    required
                   />
                 </div>
               </div>
@@ -267,6 +350,18 @@ export default function AdminProducts() {
                   rows={3}
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="composition">Состав</Label>
+                <textarea
+                  id="composition"
+                  className="w-full border rounded-md px-3 py-2"
+                  rows={2}
+                  value={formData.composition}
+                  onChange={(e) => setFormData({ ...formData, composition: e.target.value })}
+                  placeholder="Например: тесто, сыр моцарелла, томатный соус, пепперони"
                 />
               </div>
 
@@ -380,6 +475,9 @@ export default function AdminProducts() {
                   Цена
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Вес
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                   Статус
                 </th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
@@ -402,6 +500,9 @@ export default function AdminProducts() {
                     ) : (
                       `${product.price} ₽`
                     )}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {product.weight ? `${product.weight} г` : '-'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span
@@ -431,7 +532,7 @@ export default function AdminProducts() {
 
       {editProduct && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-lg p-6 max-w-3xl w-full max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-bold mb-4">Редактирование товара</h2>
             <form onSubmit={handleUpdate} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
@@ -445,12 +546,12 @@ export default function AdminProducts() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="edit-slug">Slug *</Label>
+                  <Label htmlFor="edit-slug">Slug</Label>
                   <Input
                     id="edit-slug"
                     value={formData.slug}
-                    onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-                    required
+                    disabled
+                    className="bg-gray-100"
                   />
                 </div>
               </div>
@@ -463,6 +564,18 @@ export default function AdminProducts() {
                   rows={3}
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="edit-composition">Состав</Label>
+                <textarea
+                  id="edit-composition"
+                  className="w-full border rounded-md px-3 py-2"
+                  rows={2}
+                  value={formData.composition}
+                  onChange={(e) => setFormData({ ...formData, composition: e.target.value })}
+                  placeholder="Например: тесто, сыр моцарелла, томатный соус, пепперони"
                 />
               </div>
 
@@ -554,6 +667,57 @@ export default function AdminProducts() {
                 </Button>
               </div>
             </form>
+
+            <div className="mt-6 border-t pt-4">
+              <div className="flex justify-between items-center mb-3">
+                <h3 className="text-lg font-semibold">Допы (опции)</h3>
+                <Button size="sm" onClick={() => setShowExtras(!showExtras)}>
+                  {showExtras ? 'Скрыть' : 'Показать'}
+                </Button>
+              </div>
+              
+              {showExtras && (
+                <>
+                  <div className="flex gap-2 mb-3">
+                    <Input
+                      placeholder="Название допа"
+                      value={newExtra.name}
+                      onChange={(e) => setNewExtra({ ...newExtra, name: e.target.value })}
+                      className="flex-1"
+                    />
+                    <Input
+                      placeholder="Цена"
+                      type="number"
+                      step="0.01"
+                      value={newExtra.price}
+                      onChange={(e) => setNewExtra({ ...newExtra, price: e.target.value })}
+                      className="w-24"
+                    />
+                    <Button onClick={handleAddExtra}>Добавить</Button>
+                  </div>
+                  
+                  {extras.length > 0 ? (
+                    <div className="space-y-2">
+                      {extras.map((extra) => (
+                        <div key={extra.id} className="flex justify-between items-center bg-gray-50 p-2 rounded">
+                          <span>{extra.name} - {extra.price} ₽</span>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="text-red-600"
+                            onClick={() => handleDeleteExtra(extra.id)}
+                          >
+                            Удалить
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-gray-500 text-sm">Нет допов</p>
+                  )}
+                </>
+              )}
+            </div>
           </div>
         </div>
       )}

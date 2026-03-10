@@ -3,6 +3,7 @@ export interface ProductProps {
   name: string;
   slug: string;
   description?: string;
+  composition?: string;
   imageUrl?: string;
   price: number;
   discountPrice?: number;
@@ -44,6 +45,10 @@ export class Product {
 
   get description(): string | undefined {
     return this.props.description;
+  }
+
+  get composition(): string | undefined {
+    return this.props.composition;
   }
 
   get imageUrl(): string | undefined {

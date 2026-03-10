@@ -5,8 +5,9 @@ import { z } from 'zod';
 
 const updateProductSchema = z.object({
   name: z.string().min(1, 'Name is required').max(100).optional(),
-  slug: z.string().min(1, 'Slug is required').regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Invalid slug format').optional(),
-  description: z.string().max(1000).optional(),
+  slug: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Invalid slug format').optional(),
+  description: z.string().max(5000).optional(),
+  composition: z.string().max(2000).optional(),
   imageUrl: z.string().url().optional().or(z.literal('')).optional(),
   price: z.number().positive().optional(),
   discountPrice: z.number().positive().optional(),
@@ -31,10 +32,6 @@ export async function GET(
               select: { id: true, name: true, slug: true },
             },
           },
-        },
-        extras: {
-          where: { isActive: true },
-          orderBy: { sortOrder: 'asc' },
         },
       },
     });

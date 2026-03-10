@@ -112,6 +112,7 @@ model Product {
   name           String
   slug           String   @unique
   description    String?  @db.Text
+  composition    String?  @db.Text
   imageUrl       String?  @map("image_url")
   price          Decimal  @db.Decimal(10, 2)
   discountPrice  Decimal? @map("discount_price") @db.Decimal(10, 2)

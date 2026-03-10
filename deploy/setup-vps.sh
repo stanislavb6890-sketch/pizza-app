@@ -94,7 +94,7 @@ install_mysql() {
         local DB_USER="pizza_user"
         
         if ! grep -q "DATABASE_URL" /root/.pizza_env 2>/dev/null; then
-            local DB_PASS=$(openssl rand -base64 12 | tr -dc 'a-zA-Z0-9' | head -c 16)
+            local DB_PASS=$(openssl rand -base64 16 | tr -dc 'a-zA-Z0-9' | head -c 12)
             mysql -u root <<EOF
 CREATE DATABASE IF NOT EXISTS ${DB_NAME} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 CREATE USER IF NOT EXISTS '${DB_USER}'@'localhost' IDENTIFIED BY '${DB_PASS}';
@@ -116,7 +116,7 @@ EOF
     systemctl enable mysql
     sleep 3
     
-    local DB_PASS=$(openssl rand -base64 12 | tr -dc 'a-zA-Z0-9' | head -c 16)
+    local DB_PASS=$(openssl rand -base64 16 | tr -dc 'a-zA-Z0-9' | head -c 12)
     local DB_NAME="pizza_delivery"
     local DB_USER="pizza_user"
     
@@ -307,16 +307,27 @@ setup_database() {
     DB_NAME=$(echo "$DB_URL" | sed -n 's/.*\/\([^?]*\).*/\1/p')
     
     log "Проверка подключения к БД..."
-    if ! mysql -u "$DB_USER" -p"$DB_PASS" -e "SELECT 1" "$DB_NAME" > /dev/null 2>&1; then
-        log "Ошибка подключения, пересоздаем пользователя MySQL..."
-        mysql -u root <<EOF
+    for i in 1 2 3; do
+        if mysql -u "$DB_USER" -p"$DB_PASS" -e "SELECT 1" "$DB_NAME" > /dev/null 2>&1; then
+            log "Подключение к БД успешно"
+            break
+        else
+            log "Попытка $i: Ошибка подключения, пересоздаем пользователя MySQL..."
+            NEW_PASS=$(openssl rand -base64 16 | tr -dc 'a-zA-Z0-9' | head -c 12)
+            mysql -u root <<EOF
 DROP USER IF EXISTS '$DB_USER'@'localhost';
-CREATE USER '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASS';
+CREATE USER '$DB_USER'@'localhost' IDENTIFIED BY '$NEW_PASS';
 GRANT ALL PRIVILEGES ON $DB_NAME.* TO '$DB_USER'@'localhost';
 FLUSH PRIVILEGES;
 EOF
-        log "Пользователь MySQL пересоздан"
-    fi
+            sed -i "s|DATABASE_URL=.*|DATABASE_URL=\"mysql://${DB_USER}:${NEW_PASS}@localhost:3306/${DB_NAME}?schema=public\"|" /root/.pizza_env
+            sed -i "s|DATABASE_URL=.*|DATABASE_URL=\"mysql://${DB_USER}:${NEW_PASS}@localhost:3306/${DB_NAME}?schema=public\"|" .env
+            DB_PASS="$NEW_PASS"
+            sleep 2
+        fi
+    done
+    
+    source /root/.pizza_env
     
     npx prisma generate --schema=db/prisma/schema.prisma || error "Ошибка генерации Prisma"
     npx prisma db push --schema=db/prisma/schema.prisma --accept-data-loss || error "Ошибка миграции БД"

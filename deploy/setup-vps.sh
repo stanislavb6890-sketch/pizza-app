@@ -89,13 +89,21 @@ install_nodejs() {
 install_mysql() {
     if command -v mysql &> /dev/null; then
         log "MySQL уже установлен"
-        if grep -q "DATABASE_URL" /root/.pizza_env 2>/dev/null; then
-            log "Конфигурация MySQL уже существует"
-        else
+        
+        local DB_NAME="pizza_delivery"
+        local DB_USER="pizza_user"
+        
+        if ! grep -q "DATABASE_URL" /root/.pizza_env 2>/dev/null; then
             local DB_PASS=$(openssl rand -base64 12 | tr -dc 'a-zA-Z0-9' | head -c 16)
-            local DB_NAME="pizza_delivery"
-            local DB_USER="pizza_user"
+            mysql -u root <<EOF
+CREATE DATABASE IF NOT EXISTS ${DB_NAME} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER IF NOT EXISTS '${DB_USER}'@'localhost' IDENTIFIED BY '${DB_PASS}';
+GRANT ALL PRIVILEGES ON ${DB_NAME}.* TO '${DB_USER}'@'localhost';
+FLUSH PRIVILEGES;
+EOF
             echo "DATABASE_URL=\"mysql://${DB_USER}:${DB_PASS}@localhost:3306/${DB_NAME}?schema=public\"" >> /root/.pizza_env
+        else
+            log "Конфигурация MySQL уже существует"
         fi
         return 0
     fi
@@ -268,7 +276,10 @@ NODE_ENV=production
 EOF
     fi
     
-    cat /root/.pizza_env >> .env
+    if ! grep -q "DATABASE_URL" .env 2>/dev/null && grep -q "DATABASE_URL" /root/.pizza_env 2>/dev/null; then
+        cat /root/.pizza_env >> .env
+    fi
+    
     log ".env настроен"
 }
 

@@ -32,6 +32,7 @@ export default function CheckoutPage() {
   const [cartData, setCartData] = useState<CartData>({ items: [], totalQuantity: 0, totalPrice: 0 });
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [address, setAddress] = useState<Address>({
     street: '',
     building: '',
@@ -60,7 +61,22 @@ export default function CheckoutPage() {
   }, [router]);
 
   useEffect(() => {
-    fetchCart();
+    const checkAuth = async () => {
+      try {
+        const authResponse = await fetch('/api/auth/me');
+        if (authResponse.ok) {
+          setIsAuthenticated(true);
+          fetchCart();
+        } else {
+          setIsAuthenticated(false);
+          setLoading(false);
+        }
+      } catch {
+        setIsAuthenticated(false);
+        setLoading(false);
+      }
+    };
+    checkAuth();
   }, [fetchCart]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -106,6 +122,20 @@ export default function CheckoutPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="flex justify-center items-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isAuthenticated === false) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">Требуется авторизация</h2>
+          <p className="text-gray-600 mb-6">Войдите, чтобы оформить заказ</p>
+          <Button onClick={() => router.push('/login')}>
+            Войти
+          </Button>
         </div>
       </div>
     );

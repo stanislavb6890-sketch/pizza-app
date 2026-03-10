@@ -409,42 +409,50 @@ export default function AdminProducts() {
 
               <div>
                 <Label>Изображение</Label>
-                <div className="flex gap-2 items-start">
-                  <Input
-                    type="file"
-                    accept="image/*"
-                    onChange={async (e) => {
-                      const file = e.target.files?.[0];
-                      if (!file) return;
-                      setUploadingImage(true);
-                      try {
-                        const uploadFormData = new FormData();
-                        uploadFormData.append('file', file);
-                        const response = await fetch('/api/upload', {
-                          method: 'POST',
-                          body: uploadFormData,
-                        });
-                        if (response.ok) {
-                          const data = await response.json();
-                          setFormData(prev => ({ ...prev, imageUrl: data.data.url }));
-                        }
-                      } catch (error) {
-                        console.error('Upload failed:', error);
-                      } finally {
-                        setUploadingImage(false);
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    
+                    // Показать локальный preview сразу
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                      if (event.target?.result) {
+                        setFormData(prev => ({ ...prev, imageUrl: event.target?.result as string }));
                       }
-                    }}
-                    className="flex-1"
-                  />
-                  {uploadingImage && <span className="text-sm text-gray-500">Загрузка...</span>}
-                </div>
+                    };
+                    reader.readAsDataURL(file);
+                    
+                    // Затем загрузить на сервер
+                    setUploadingImage(true);
+                    try {
+                      const uploadFormData = new FormData();
+                      uploadFormData.append('file', file);
+                      const response = await fetch('/api/upload', {
+                        method: 'POST',
+                        body: uploadFormData,
+                      });
+                      if (response.ok) {
+                        const data = await response.json();
+                        setFormData(prev => ({ ...prev, imageUrl: data.data.url }));
+                      }
+                    } catch (error) {
+                      console.error('Upload failed:', error);
+                    } finally {
+                      setUploadingImage(false);
+                    }
+                  }}
+                />
+                {uploadingImage && <span className="text-sm text-gray-500 mt-1 block">Загрузка...</span>}
                 {formData.imageUrl && (
                   <div className="mt-2">
                     <img src={formData.imageUrl} alt="Preview" className="h-20 w-20 object-cover rounded" />
                     <button
                       type="button"
                       onClick={() => setFormData(prev => ({ ...prev, imageUrl: '' }))}
-                      className="text-red-500 text-sm mt-1"
+                      className="text-red-500 text-sm mt-1 block"
                     >
                       Удалить
                     </button>

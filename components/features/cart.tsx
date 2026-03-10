@@ -11,6 +11,11 @@ interface CartItem {
   productPrice: number;
   quantity: number;
   imageUrl?: string | null;
+  extras?: Array<{
+    id: string;
+    name: string;
+    price: number;
+  }>;
 }
 
 interface CartProps {
@@ -68,6 +73,7 @@ export function Cart({ items, onUpdateQuantity, onRemove, onClear }: CartProps) 
                 productPrice={item.productPrice}
                 quantity={item.quantity}
                 imageUrl={item.imageUrl}
+                extras={item.extras}
                 onUpdateQuantity={onUpdateQuantity}
                 onRemove={onRemove}
               />

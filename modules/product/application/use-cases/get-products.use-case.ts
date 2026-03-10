@@ -9,6 +9,7 @@ function mapPrismaProduct(product: PrismaProduct): Product {
     name: product.name,
     slug: product.slug,
     description: product.description ?? undefined,
+    composition: product.composition ?? undefined,
     imageUrl: product.imageUrl ?? undefined,
     price: Number(product.price),
     discountPrice: product.discountPrice ? Number(product.discountPrice) : undefined,

@@ -61,7 +61,11 @@ export async function POST(request: NextRequest) {
     const accessToken = request.cookies.get('accessToken')?.value;
     
     if (!accessToken) {
-      throw ApiError.unauthorized('AUTH_REQUIRED', 'Authentication required');
+      return NextResponse.json({
+        success: false,
+        error: 'AUTH_REQUIRED',
+        message: 'Войдите, чтобы добавить в избранное',
+      }, { status: 401 });
     }
 
     let payload;

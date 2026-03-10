@@ -50,6 +50,13 @@ export default function MenuPage() {
   const [extras, setExtras] = useState<ProductExtra[]>([]);
   const [selectedExtras, setSelectedExtras] = useState<Record<string, number>>({});
   const [quantity, setQuantity] = useState(1);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [reviews, setReviews] = useState<{rating: number; comment: string | null; user: {firstName: string | null}; createdAt: string}[]>([]);
+  const [averageRating, setAverageRating] = useState(0);
+  const [userRating, setUserRating] = useState(0);
+  const [reviewComment, setReviewComment] = useState('');
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [submittingReview, setSubmittingReview] = useState(false);
 
   const fetchProducts = async () => {
     try {
@@ -72,6 +79,8 @@ export default function MenuPage() {
     setSelectedProduct(product);
     setQuantity(1);
     setSelectedExtras({});
+    setUserRating(0);
+    setReviewComment('');
     
     try {
       const res = await fetch(`/api/products/${product.id}/extras`);
@@ -84,6 +93,25 @@ export default function MenuPage() {
     } catch {
       setExtras([]);
     }
+
+    try {
+      const reviewsRes = await fetch(`/api/products/${product.id}/reviews`);
+      if (reviewsRes.ok) {
+        const reviewsData = await reviewsRes.json();
+        setReviews(reviewsData.data.reviews || []);
+        setAverageRating(reviewsData.data.averageRating || 0);
+      }
+    } catch {
+      setReviews([]);
+      setAverageRating(0);
+    }
+
+    try {
+      const authRes = await fetch('/api/auth/me');
+      setIsAuthenticated(authRes.ok);
+    } catch {
+      setIsAuthenticated(false);
+    }
   };
 
   const closeModal = () => {
@@ -91,6 +119,38 @@ export default function MenuPage() {
     setExtras([]);
     setSelectedExtras({});
     setQuantity(1);
+    setReviews([]);
+    setAverageRating(0);
+    setUserRating(0);
+    setReviewComment('');
+  };
+
+  const submitReview = async () => {
+    if (!selectedProduct || userRating === 0) return;
+    setSubmittingReview(true);
+    try {
+      const response = await fetch(`/api/products/${selectedProduct.id}/reviews`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rating: userRating, comment: reviewComment }),
+      });
+      if (response.ok) {
+        const reviewsRes = await fetch(`/api/products/${selectedProduct.id}/reviews`);
+        if (reviewsRes.ok) {
+          const reviewsData = await reviewsRes.json();
+          setReviews(reviewsData.data.reviews || []);
+          setAverageRating(reviewsData.data.averageRating || 0);
+        }
+        setUserRating(0);
+        setReviewComment('');
+        setNotification('Отзыв добавлен!');
+        setTimeout(() => setNotification(null), 3000);
+      }
+    } catch (error) {
+      console.error('Failed to submit review:', error);
+    } finally {
+      setSubmittingReview(false);
+    }
   };
 
   const toggleExtra = (extraId: string) => {
@@ -194,6 +254,18 @@ export default function MenuPage() {
 
   const featuredProducts = products.filter((p) => p.isFeatured);
   const regularProducts = products.filter((p) => !p.isFeatured);
+  
+  const filteredProducts = searchQuery
+    ? products.filter((p) =>
+        p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        p.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        p.composition?.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : regularProducts;
+
+  const filteredFeatured = searchQuery
+    ? []
+    : featuredProducts;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -205,19 +277,48 @@ export default function MenuPage() {
       )}
 
       {/* Header */}
-      <div className="text-center mb-12">
+      <div className="text-center mb-8">
         <h1 className="text-4xl font-bold text-gray-900 mb-2">Наше меню</h1>
-        <p className="text-gray-600">
+        <p className="text-gray-600 mb-6">
           Выберите свою идеальную пиццу из {products.length} вариантов
         </p>
+        
+        {/* Search */}
+        <div className="max-w-md mx-auto">
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Поиск по меню..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full px-4 py-3 pl-12 border rounded-full focus:outline-none focus:ring-2 focus:ring-primary-500"
+            />
+            <svg
+              className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Featured Products */}
-      {featuredProducts.length > 0 && (
+      {filteredFeatured.length > 0 && (
         <section className="mb-12">
           <h2 className="text-2xl font-bold text-gray-900 mb-6">Хиты продаж</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {featuredProducts.map((product) => (
+            {filteredFeatured.map((product) => (
               <ProductCard
                 key={product.id}
                 {...product}
@@ -230,14 +331,26 @@ export default function MenuPage() {
 
       {/* All Products */}
       <section>
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">Все пиццы</h2>
-        {products.length === 0 ? (
+        <h2 className="text-2xl font-bold text-gray-900 mb-6">
+          {searchQuery ? `Результаты поиска "${searchQuery}"` : 'Все пиццы'}
+        </h2>
+        {filteredProducts.length === 0 && searchQuery ? (
+          <div className="text-center py-12">
+            <p className="text-gray-600 mb-4">По вашему запросу ничего не найдено</p>
+            <button
+              onClick={() => setSearchQuery('')}
+              className="text-primary-600 hover:underline"
+            >
+              Очистить поиск
+            </button>
+          </div>
+        ) : filteredProducts.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-gray-600">Товары временно отсутствуют</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {products.map((product) => (
+            {filteredProducts.map((product) => (
               <ProductCard
                 key={product.id}
                 {...product}
@@ -305,6 +418,79 @@ export default function MenuPage() {
                   <p className="text-gray-600 text-sm">{selectedProduct.composition}</p>
                 </div>
               )}
+
+              {/* Reviews */}
+              <div className="mb-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <h3 className="font-semibold">Отзывы</h3>
+                  {averageRating > 0 && (
+                    <div className="flex items-center gap-1">
+                      <span className="text-yellow-500">★</span>
+                      <span className="text-sm font-medium">{averageRating.toFixed(1)}</span>
+                      <span className="text-gray-400 text-sm">({reviews.length})</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Add Review */}
+                {isAuthenticated ? (
+                  <div className="bg-gray-50 rounded-lg p-4 mb-4">
+                    <p className="text-sm font-medium mb-2">Оценить товар</p>
+                    <div className="flex gap-1 mb-2">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button
+                          key={star}
+                          onClick={() => setUserRating(star)}
+                          className={`text-2xl ${star <= userRating ? 'text-yellow-500' : 'text-gray-300'}`}
+                        >
+                          ★
+                        </button>
+                      ))}
+                    </div>
+                    <textarea
+                      value={reviewComment}
+                      onChange={(e) => setReviewComment(e.target.value)}
+                      placeholder="Напишите отзыв (необязательно)"
+                      className="w-full p-2 border rounded-lg text-sm mb-2"
+                      rows={2}
+                    />
+                    <Button
+                      size="sm"
+                      onClick={submitReview}
+                      disabled={userRating === 0 || submittingReview}
+                    >
+                      {submittingReview ? 'Отправка...' : 'Отправить отзыв'}
+                    </Button>
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500 mb-4">
+                    <a href="/login" className="text-primary-600 hover:underline">Войдите</a>, чтобы оставить отзыв
+                  </p>
+                )}
+
+                {/* Reviews List */}
+                {reviews.length > 0 ? (
+                  <div className="space-y-3 max-h-48 overflow-y-auto">
+                    {reviews.slice(0, 5).map((review, idx) => (
+                      <div key={idx} className="border-b pb-2">
+                        <div className="flex items-center gap-2 mb-1">
+                          <div className="flex">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <span key={star} className={`${star <= review.rating ? 'text-yellow-500' : 'text-gray-300'}`}>★</span>
+                            ))}
+                          </div>
+                          <span className="text-xs text-gray-500">
+                            {review.user.firstName || 'Аноним'} • {new Date(review.createdAt).toLocaleDateString('ru-RU')}
+                          </span>
+                        </div>
+                        {review.comment && <p className="text-sm text-gray-600">{review.comment}</p>}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500">Отзывов пока нет</p>
+                )}
+              </div>
 
               {/* Extras */}
               {extras.length > 0 && (

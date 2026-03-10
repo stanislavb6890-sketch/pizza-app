@@ -60,6 +60,18 @@ export default async function AdminLayout({ children }: AdminLayoutProps) {
                 >
                   Категории
                 </Link>
+                <Link
+                  href="/admin/extras"
+                  className="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100"
+                >
+                  Допы
+                </Link>
+                <Link
+                  href="/admin/promocodes"
+                  className="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100"
+                >
+                  Промокоды
+                </Link>
               </div>
             </div>
             <div className="flex items-center">

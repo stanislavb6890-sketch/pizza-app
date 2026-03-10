@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { Card, CardImage, CardContent, CardTitle, CardPrice, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -29,6 +30,46 @@ export function ProductCard({
   isFeatured,
   onAddToCart,
 }: ProductCardProps) {
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [favoriteLoading, setFavoriteLoading] = useState(false);
+
+  useEffect(() => {
+    checkFavorite();
+  }, [id]);
+
+  const checkFavorite = async () => {
+    try {
+      const response = await fetch('/api/favorites');
+      if (response.ok) {
+        const data = await response.json();
+        const favorites = data.data || [];
+        setIsFavorite(favorites.some((p: any) => p.id === id));
+      }
+    } catch {
+      // Not logged in or error
+    }
+  };
+
+  const handleFavorite = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setFavoriteLoading(true);
+    try {
+      const response = await fetch('/api/favorites', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productId: id }),
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setIsFavorite(data.data.favorited);
+      }
+    } catch (error) {
+      console.error('Failed to toggle favorite:', error);
+    } finally {
+      setFavoriteLoading(false);
+    }
+  };
+
   const hasDiscount = discountPrice && Number(discountPrice) < price;
   const displayPrice = hasDiscount ? Number(discountPrice) : Number(price);
 
@@ -56,9 +97,23 @@ export function ProductCard({
         )}
         {hasDiscount && isAvailable && (
           <Badge variant="success" className="absolute top-2 right-2">
-            -{Math.round((1 - discountPrice / price) * 100)}%
+            -{Math.round((1 - Number(discountPrice) / Number(price)) * 100)}%
           </Badge>
         )}
+        <button
+          onClick={handleFavorite}
+          disabled={favoriteLoading}
+          className="absolute bottom-2 right-2 p-2 rounded-full bg-white shadow-md hover:bg-gray-50 transition-colors"
+        >
+          <svg
+            className={`w-5 h-5 ${isFavorite ? 'text-red-500 fill-current' : 'text-gray-400'}`}
+            fill={isFavorite ? 'currentColor' : 'none'}
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+          </svg>
+        </button>
       </div>
       
       <CardContent className="flex-1 flex flex-col">

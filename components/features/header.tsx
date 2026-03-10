@@ -9,13 +9,20 @@ interface CartSummary {
   totalPrice: number;
 }
 
+interface User {
+  userId: string;
+  email: string;
+}
+
 export function Header() {
   const pathname = usePathname();
   const [cart, setCart] = useState<CartSummary>({ itemCount: 0, totalPrice: 0 });
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
     fetchCart();
+    checkAuth();
   }, []);
 
   const fetchCart = async () => {
@@ -30,6 +37,18 @@ export function Header() {
       }
     } catch (error) {
       console.error('Failed to fetch cart:', error);
+    }
+  };
+
+  const checkAuth = async () => {
+    try {
+      const response = await fetch('/api/auth/me');
+      if (response.ok) {
+        const data = await response.json();
+        setUser(data.data);
+      }
+    } catch {
+      setUser(null);
     }
   };
 
@@ -86,12 +105,21 @@ export function Header() {
               <span className="hidden sm:inline text-sm font-medium">{cart.totalPrice} ₽</span>
             </Link>
 
-            <Link
-              href="/login"
-              className="text-sm font-medium text-gray-700 hover:text-primary-600 transition-colors"
-            >
-              Войти
-            </Link>
+            {user ? (
+              <Link
+                href="/account/orders"
+                className="text-sm font-medium text-gray-700 hover:text-primary-600 transition-colors"
+              >
+                Мои заказы
+              </Link>
+            ) : (
+              <Link
+                href="/login"
+                className="text-sm font-medium text-gray-700 hover:text-primary-600 transition-colors"
+              >
+                Войти
+              </Link>
+            )}
           </div>
 
           {/* Mobile menu button */}
@@ -129,13 +157,23 @@ export function Header() {
                   {link.label}
                 </Link>
               ))}
-              <Link
-                href="/login"
-                className="text-sm font-medium text-gray-700 hover:text-primary-600 transition-colors"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                Войти
-              </Link>
+              {user ? (
+                <Link
+                  href="/account/orders"
+                  className="text-sm font-medium text-gray-700 hover:text-primary-600 transition-colors"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Мои заказы
+                </Link>
+              ) : (
+                <Link
+                  href="/login"
+                  className="text-sm font-medium text-gray-700 hover:text-primary-600 transition-colors"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Войти
+                </Link>
+              )}
             </div>
           </div>
         )}

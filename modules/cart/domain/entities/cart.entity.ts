@@ -93,11 +93,13 @@ export class Cart {
     return this.props.items.size === 0;
   }
 
-  toJSON(): Omit<CartProps, 'items'> & { items: ReturnType<CartItem['toJSON']>[] } {
+  toJSON(): Omit<CartProps, 'items'> & { items: ReturnType<CartItem['toJSON']>[] } & { totalQuantity: number; totalPrice: number } {
     return {
       userId: this.props.userId,
       sessionId: this.props.sessionId,
       items: this.items.map((item) => item.toJSON()),
+      totalQuantity: this.totalQuantity,
+      totalPrice: this.totalPrice,
       createdAt: this.props.createdAt,
       updatedAt: this.props.updatedAt,
     };

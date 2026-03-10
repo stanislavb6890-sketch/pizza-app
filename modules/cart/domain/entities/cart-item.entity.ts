@@ -58,7 +58,7 @@ export class CartItem {
     this.props.quantity -= amount;
   }
 
-  toJSON(): CartItemProps {
-    return { ...this.props };
+  toJSON(): CartItemProps & { totalPrice: number } {
+    return { ...this.props, totalPrice: this.totalPrice };
   }
 }

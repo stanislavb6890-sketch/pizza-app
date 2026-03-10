@@ -23,12 +23,25 @@ check_root() {
 }
 
 get_params() {
-    read -p "Введите домен (например, example.com): " DOMAIN
-    read -p "Введите email для SSL-сертификата: " EMAIL
+    if [[ -f /root/.pizza_config ]]; then
+        source /root/.pizza_config
+        log "Найдена конфигурация из предыдущей установки"
+        read -p "Использовать домен $DOMAIN и email $EMAIL? (y/n): " confirm
+        if [[ "$confirm" != "y" && "$confirm" != "Y" ]]; then
+            read -p "Введите домен (например, example.com): " DOMAIN
+            read -p "Введите email для SSL-сертификата: " EMAIL
+        fi
+    else
+        read -p "Введите домен (например, example.com): " DOMAIN
+        read -p "Введите email для SSL-сертификата: " EMAIL
+    fi
     
     if [[ -z "$DOMAIN" || -z "$EMAIL" ]]; then
         error "Домен и email обязательны"
     fi
+    
+    echo "DOMAIN=\"$DOMAIN\"" > /root/.pizza_config
+    echo "EMAIL=\"$EMAIL\"" >> /root/.pizza_config
     
     log "Домен: $DOMAIN"
     log "Email: $EMAIL"
@@ -36,12 +49,18 @@ get_params() {
 
 init_env_file() {
     log "Создание файла настроек..."
-    rm -f /root/.pizza_env
-    touch /root/.pizza_env
-    chmod 600 /root/.pizza_env
+    if [[ ! -f /root/.pizza_env ]]; then
+        touch /root/.pizza_env
+        chmod 600 /root/.pizza_env
+    fi
 }
 
 update_system() {
+    if command -v node &> /dev/null && command -v npm &> /dev/null; then
+        log "Система уже обновлена, пропускаем..."
+        return 0
+    fi
+    
     log "Обновление системы..."
     export DEBIAN_FRONTEND=noninteractive
     apt update && apt upgrade -y
@@ -49,26 +68,44 @@ update_system() {
 }
 
 install_nodejs() {
-    log "Установка Node.js 20.x..."
+    if command -v node &> /dev/null; then
+        log "Node.js уже установлен: $(node --version)"
+        if command -v pm2 &> /dev/null; then
+            log "PM2 уже установлен"
+        else
+            npm install -g pm2
+        fi
+        return 0
+    fi
     
+    log "Установка Node.js 20.x..."
     curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
     apt install -y nodejs
-    
     npm install -g pm2
-    
     node --version
     npm --version
 }
 
 install_mysql() {
+    if command -v mysql &> /dev/null; then
+        log "MySQL уже установлен"
+        if grep -q "DATABASE_URL" /root/.pizza_env 2>/dev/null; then
+            log "Конфигурация MySQL уже существует"
+        else
+            local DB_PASS=$(openssl rand -base64 12 | tr -dc 'a-zA-Z0-9' | head -c 16)
+            local DB_NAME="pizza_delivery"
+            local DB_USER="pizza_user"
+            echo "DATABASE_URL=\"mysql://${DB_USER}:${DB_PASS}@localhost:3306/${DB_NAME}?schema=public\"" >> /root/.pizza_env
+        fi
+        return 0
+    fi
+    
     log "Установка MySQL..."
     export DEBIAN_FRONTEND=noninteractive
-    
     apt install -y mysql-server
     
     systemctl start mysql
     systemctl enable mysql
-    
     sleep 3
     
     local DB_PASS=$(openssl rand -base64 12 | tr -dc 'a-zA-Z0-9' | head -c 16)
@@ -88,39 +125,61 @@ EOF
 }
 
 install_redis() {
+    if command -v redis-server &> /dev/null; then
+        log "Redis уже установлен"
+        if ! grep -q "REDIS_URL" /root/.pizza_env 2>/dev/null; then
+            echo "REDIS_URL=\"redis://localhost:6379\"" >> /root/.pizza_env
+        fi
+        return 0
+    fi
+    
     log "Установка Redis..."
     apt install -y redis-server
-    
     sed -i 's/^supervised .*/supervised systemd/' /etc/redis/redis.conf || true
-    
     systemctl restart redis-server
     systemctl enable redis-server
-    
     sleep 2
-    
     echo "REDIS_URL=\"redis://localhost:6379\"" >> /root/.pizza_env
-    
     log "Redis установлен"
 }
 
 install_nginx() {
+    if command -v nginx &> /dev/null; then
+        log "Nginx уже установлен"
+        return 0
+    fi
+    
     log "Установка Nginx..."
     apt install -y nginx
-    
     systemctl start nginx
     systemctl enable nginx
-    
     log "Nginx установлен"
 }
 
 install_certbot() {
+    if command -v certbot &> /dev/null; then
+        log "Certbot уже установлен"
+        return 0
+    fi
+    
     log "Установка Certbot..."
     apt install -y certbot python3-certbot-nginx
-    
     log "Certbot установлен"
 }
 
+ssl_exists() {
+    if [[ -d "/etc/letsencrypt/live/$DOMAIN" ]]; then
+        return 0
+    fi
+    return 1
+}
+
 create_temp_nginx_config() {
+    if [[ -f /etc/nginx/sites-enabled/pizza-delivery ]]; then
+        log "Nginx конфиг уже настроен, пропускаем..."
+        return 0
+    fi
+    
     log "Создание временного конфига Nginx..."
     
     cat > /etc/nginx/sites-available/pizza-temp <<EOF
@@ -138,32 +197,45 @@ EOF
     
     rm -f /etc/nginx/sites-enabled/default
     ln -sf /etc/nginx/sites-available/pizza-temp /etc/nginx/sites-enabled/
-    
     nginx -t && systemctl reload nginx
-    
     log "Временный конфиг создан"
 }
 
 setup_ssl() {
-    log "Настройка SSL-сертификата для $DOMAIN..."
+    if ssl_exists; then
+        log "SSL сертификат уже существует, пропускаем..."
+        return 0
+    fi
     
+    log "Настройка SSL-сертификата для $DOMAIN..."
     certbot --nginx -d "$DOMAIN" -d "www.$DOMAIN" \
         --non-interactive --agree-tos --email "$EMAIL" --redirect || error "Ошибка получения SSL"
     
     (crontab -l 2>/dev/null; echo "0 3 * * * certbot renew --quiet --post-hook 'systemctl reload nginx'") | crontab -
-    
     log "SSL настроен"
 }
 
+project_exists() {
+    if [[ -d "$PROJECT_DIR" && -f "$PROJECT_DIR/package.json" ]]; then
+        return 0
+    fi
+    return 1
+}
+
 clone_project() {
-    log "Клонирование проекта..."
+    if project_exists; then
+        log "Проект уже существует, обновляем..."
+        cd "$PROJECT_DIR"
+        git fetch origin
+        git pull origin main
+        return 0
+    fi
     
+    log "Клонирование проекта..."
     mkdir -p "$(dirname "$PROJECT_DIR")"
     rm -rf "$PROJECT_DIR"
     git clone "$REPO_URL" "$PROJECT_DIR"
-    
     cd "$PROJECT_DIR"
-    
     log "Проект склонирован"
 }
 
@@ -175,13 +247,18 @@ setup_env() {
     local NEXTAUTH_SECRET=$(openssl rand -base64 32)
     local JWT_SECRET=$(openssl rand -base64 32)
     
-    if [[ -f .env.example ]]; then
-        cp .env.example .env
+    if [[ ! -f .env ]]; then
+        if [[ -f .env.example ]]; then
+            cp .env.example .env
+        else
+            touch .env
+        fi
     else
-        touch .env
+        log ".env уже существует, используем существующий"
     fi
     
-    cat >> .env <<EOF
+    if ! grep -q "NEXTAUTH_SECRET" .env 2>/dev/null; then
+        cat >> .env <<EOF
 
 NEXT_PUBLIC_APP_URL=https://${DOMAIN}
 NEXTAUTH_URL=https://${DOMAIN}
@@ -189,18 +266,21 @@ NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
 JWT_SECRET=${JWT_SECRET}
 NODE_ENV=production
 EOF
+    fi
     
     cat /root/.pizza_env >> .env
-    
-    log ".env создан"
+    log ".env настроен"
 }
 
 install_dependencies() {
-    log "Установка зависимостей..."
+    if [[ -d "$PROJECT_DIR/node_modules" ]]; then
+        log "Зависимости уже установлены, пропускаем..."
+        return 0
+    fi
     
+    log "Установка зависимостей..."
     cd "$PROJECT_DIR"
     npm install --legacy-peer-deps || npm install
-    
     log "Зависимости установлены"
 }
 
@@ -216,15 +296,23 @@ setup_database() {
 }
 
 build_project() {
-    log "Сборка проекта..."
+    if [[ -d "$PROJECT_DIR/.next" ]]; then
+        log "Проект уже собран, пропускаем..."
+        return 0
+    fi
     
+    log "Сборка проекта..."
     cd "$PROJECT_DIR"
     npm run build || error "Ошибка сборки"
-    
     log "Проект собран"
 }
 
 configure_nginx() {
+    if [[ -f /etc/nginx/sites-enabled/pizza-delivery ]]; then
+        log "Nginx конфиг уже настроен для приложения, пропускаем..."
+        return 0
+    fi
+    
     log "Настройка Nginx..."
     
     cat > /etc/nginx/sites-available/pizza-delivery <<EOF
@@ -302,9 +390,7 @@ EOF
     rm -f /etc/nginx/sites-enabled/default
     rm -f /etc/nginx/sites-enabled/pizza-temp
     ln -sf /etc/nginx/sites-available/pizza-delivery /etc/nginx/sites-enabled/
-    
     nginx -t && systemctl reload nginx
-    
     log "Nginx настроен"
 }
 
@@ -314,12 +400,9 @@ start_app() {
     cd "$PROJECT_DIR"
     
     pm2 delete pizza-delivery 2>/dev/null || true
-    
     pm2 start npm --name "pizza-delivery" -- start
-    
     pm2 save
     
-    env_path=$(which env)
     if [ -f /etc/systemd/system/pm2-root.service ]; then
         systemctl enable pm2-root
     else
@@ -330,10 +413,13 @@ start_app() {
 }
 
 setup_firewall() {
+    if systemctl is-active --quiet ufw; then
+        log "Файрвол уже настроен, пропускаем..."
+        return 0
+    fi
+    
     log "Настройка файрвола..."
-    
     apt install -y ufw
-    
     ufw --force reset
     ufw default deny incoming
     ufw default allow outgoing
@@ -341,9 +427,7 @@ setup_firewall() {
     ufw allow 80/tcp comment 'HTTP'
     ufw allow 443/tcp comment 'HTTPS'
     ufw --force enable
-    
     ufw status verbose
-    
     log "Файрвол настроен"
 }
 

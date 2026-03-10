@@ -60,17 +60,19 @@ function LoginForm() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
+        credentials: 'include',
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || 'Login failed');
+        setErrors({ general: data.message || 'Login failed' });
+        setIsLoading(false);
+        return;
       }
 
       // Redirect to the original page or home
-      router.push(redirect);
-      router.refresh();
+      window.location.href = redirect;
     } catch (error) {
       setErrors({
         general: error instanceof Error ? error.message : 'Login failed',

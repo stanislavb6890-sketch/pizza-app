@@ -87,7 +87,8 @@ export default function CheckoutPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || 'Failed to create order');
+        alert(data.message || 'Ошибка при создании заказа');
+        return;
       }
 
       // Redirect to success page with order ID

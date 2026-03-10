@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -41,27 +41,7 @@ export default function UserOrders() {
   const [error, setError] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
 
-  useEffect(() => {
-    checkAuth();
-  }, []);
-
-  const checkAuth = async () => {
-    try {
-      const response = await fetch('/api/auth/me');
-      if (response.ok) {
-        setIsAuthenticated(true);
-        fetchOrders();
-      } else {
-        setIsAuthenticated(false);
-        setLoading(false);
-      }
-    } catch {
-      setIsAuthenticated(false);
-      setLoading(false);
-    }
-  };
-
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     try {
       const response = await fetch('/api/orders');
       if (response.ok) {
@@ -75,7 +55,27 @@ export default function UserOrders() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  const checkAuth = useCallback(async () => {
+    try {
+      const response = await fetch('/api/auth/me');
+      if (response.ok) {
+        setIsAuthenticated(true);
+        fetchOrders();
+      } else {
+        setIsAuthenticated(false);
+        setLoading(false);
+      }
+    } catch {
+      setIsAuthenticated(false);
+      setLoading(false);
+    }
+  }, [fetchOrders]);
+
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, 'default' | 'success' | 'warning' | 'danger' | 'info'> = {

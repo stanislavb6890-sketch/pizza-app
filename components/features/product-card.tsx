@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { Card, CardImage, CardContent, CardTitle, CardPrice, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -35,11 +35,7 @@ export function ProductCard({
   const [isFavorite, setIsFavorite] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
 
-  useEffect(() => {
-    checkFavorite();
-  }, [id]);
-
-  const checkFavorite = async () => {
+  const checkFavorite = useCallback(async () => {
     try {
       const response = await fetch('/api/favorites');
       if (response.ok) {
@@ -50,7 +46,11 @@ export function ProductCard({
     } catch {
       // Not logged in or error
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    checkFavorite();
+  }, [checkFavorite]);
 
   const handleFavorite = async (e: React.MouseEvent) => {
     e.stopPropagation();

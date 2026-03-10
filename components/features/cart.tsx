@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 
 interface CartItem {
+  uniqueKey: string;
   productId: string;
   productName: string;
   productPrice: number;
@@ -14,8 +15,8 @@ interface CartItem {
 
 interface CartProps {
   items: CartItem[];
-  onUpdateQuantity: (productId: string, quantity: number) => void;
-  onRemove: (productId: string) => void;
+  onUpdateQuantity: (uniqueKey: string, quantity: number) => void;
+  onRemove: (uniqueKey: string) => void;
   onClear?: () => void;
 }
 
@@ -60,7 +61,8 @@ export function Cart({ items, onUpdateQuantity, onRemove, onClear }: CartProps) 
           <div className="divide-y">
             {items.map((item) => (
               <CartItemComponent
-                key={item.productId}
+                key={item.uniqueKey}
+                uniqueKey={item.uniqueKey}
                 productId={item.productId}
                 productName={item.productName}
                 productPrice={item.productPrice}

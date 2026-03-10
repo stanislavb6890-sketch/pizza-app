@@ -73,7 +73,8 @@ function LoginForm() {
 
       // Redirect to the original page or home
       if (typeof window !== 'undefined') {
-        window.location.replace(redirect);
+        alert('Login successful! Redirecting...');
+        window.location.href = redirect + '?loggedin=1';
       }
     } catch (error) {
       setErrors({

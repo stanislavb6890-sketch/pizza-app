@@ -72,7 +72,9 @@ function LoginForm() {
       }
 
       // Redirect to the original page or home
-      window.location.href = redirect;
+      if (typeof window !== 'undefined') {
+        window.location.replace(redirect);
+      }
     } catch (error) {
       setErrors({
         general: error instanceof Error ? error.message : 'Login failed',

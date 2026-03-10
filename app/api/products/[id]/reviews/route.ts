@@ -62,6 +62,13 @@ export async function POST(
       throw ApiError.unauthorized('INVALID_TOKEN', 'Invalid or expired token');
     }
 
+    const user = await prisma.user.findUnique({
+      where: { id: payload.userId },
+    });
+    if (!user) {
+      throw ApiError.unauthorized('USER_NOT_FOUND', 'User not found');
+    }
+
     const body = await request.json();
     const { rating, comment } = body;
 

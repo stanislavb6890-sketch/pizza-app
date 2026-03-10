@@ -166,9 +166,14 @@ export default function AdminProducts() {
       isFeatured: product.isFeatured,
     });
     
-    if (product.extras) {
-      setExtras(product.extras);
-    } else {
+    try {
+      const res = await fetch(`/api/admin/extras?productId=${product.id}`);
+      if (res.ok) {
+        const data = await res.json();
+        setExtras(data.data || []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch extras:', error);
       setExtras([]);
     }
   };

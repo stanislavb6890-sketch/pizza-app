@@ -3,6 +3,8 @@ import { getProductsUseCase } from '@/modules/product/application';
 import { paginationSchema } from '@/core/validation';
 import { ApiError } from '@/core/errors';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);

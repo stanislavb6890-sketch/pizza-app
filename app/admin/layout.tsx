@@ -54,6 +54,12 @@ export default async function AdminLayout({ children }: AdminLayoutProps) {
                 >
                   Заказы
                 </Link>
+                <Link
+                  href="/admin/categories"
+                  className="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100"
+                >
+                  Категории
+                </Link>
               </div>
             </div>
             <div className="flex items-center">

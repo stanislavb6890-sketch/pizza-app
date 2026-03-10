@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCartUseCase } from '@/modules/cart/application';
 import { ApiError } from '@/core/errors';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * GET /api/cart
  * Get current user's cart

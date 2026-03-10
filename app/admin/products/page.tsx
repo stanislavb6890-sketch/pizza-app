@@ -3,34 +3,221 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 interface Product {
   id: string;
   name: string;
+  slug: string;
   price: number;
+  discountPrice?: number;
+  description?: string;
+  imageUrl?: string;
+  weight?: number;
   isAvailable: boolean;
+  isFeatured: boolean;
+  sortOrder: number;
+  subCategory?: {
+    id: string;
+    name: string;
+    slug: string;
+  };
+  createdAt: string;
+}
+
+interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  subCategories: { id: string; name: string; slug: string }[];
 }
 
 export default function AdminProducts() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [editProduct, setEditProduct] = useState<Product | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [formData, setFormData] = useState({
+    name: '',
+    slug: '',
+    description: '',
+    price: '',
+    discountPrice: '',
+    weight: '',
+    imageUrl: '',
+    subCategoryId: '',
+    isFeatured: false,
+  });
 
   useEffect(() => {
-    async function fetchProducts() {
-      try {
-        const response = await fetch('/api/admin/products');
-        if (response.ok) {
-          const data = await response.json();
-          setProducts(data.data || []);
-        }
-      } catch (error) {
-        console.error('Failed to fetch products:', error);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchProducts();
+    fetchData();
   }, []);
+
+  const fetchData = async () => {
+    try {
+      const [productsRes, categoriesRes] = await Promise.all([
+        fetch('/api/admin/products'),
+        fetch('/api/admin/categories'),
+      ]);
+      if (productsRes.ok) {
+        const pData = await productsRes.json();
+        setProducts(pData.data || []);
+      }
+      if (categoriesRes.ok) {
+        const cData = await categoriesRes.json();
+        setCategories(cData.data || []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const generateSlug = (name: string) => {
+    return name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '');
+  };
+
+  const handleNameChange = (name: string) => {
+    setFormData({ ...formData, name, slug: generateSlug(name) });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+
+    try {
+      const payload = {
+        name: formData.name,
+        slug: formData.slug,
+        description: formData.description || undefined,
+        price: parseFloat(formData.price),
+        discountPrice: formData.discountPrice ? parseFloat(formData.discountPrice) : undefined,
+        weight: formData.weight ? parseInt(formData.weight) : undefined,
+        imageUrl: formData.imageUrl || undefined,
+        subCategoryId: formData.subCategoryId || undefined,
+        isFeatured: formData.isFeatured,
+      };
+
+      const response = await fetch('/api/admin/products', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (response.ok) {
+        const newProduct = await response.json();
+        setProducts([newProduct.data, ...products]);
+        setShowForm(false);
+        resetForm();
+      } else {
+        const error = await response.json();
+        alert(error.message || 'Ошибка при создании товара');
+      }
+    } catch (error) {
+      console.error('Failed to create product:', error);
+      alert('Ошибка при создании товара');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleEdit = (product: Product) => {
+    setEditProduct(product);
+    setFormData({
+      name: product.name,
+      slug: product.slug,
+      description: product.description || '',
+      price: String(product.price),
+      discountPrice: product.discountPrice ? String(product.discountPrice) : '',
+      weight: product.weight ? String(product.weight) : '',
+      imageUrl: product.imageUrl || '',
+      subCategoryId: product.subCategory?.id || '',
+      isFeatured: product.isFeatured,
+    });
+  };
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editProduct) return;
+    setSaving(true);
+
+    try {
+      const payload = {
+        name: formData.name,
+        slug: formData.slug,
+        description: formData.description || undefined,
+        price: parseFloat(formData.price),
+        discountPrice: formData.discountPrice ? parseFloat(formData.discountPrice) : undefined,
+        weight: formData.weight ? parseInt(formData.weight) : undefined,
+        imageUrl: formData.imageUrl || undefined,
+        subCategoryId: formData.subCategoryId || undefined,
+        isFeatured: formData.isFeatured,
+      };
+
+      const response = await fetch(`/api/admin/products/${editProduct.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (response.ok) {
+        const updated = await response.json();
+        setProducts(products.map(p => p.id === editProduct.id ? { ...p, ...updated.data } : p));
+        setEditProduct(null);
+        resetForm();
+      } else {
+        const error = await response.json();
+        alert(error.message || 'Ошибка при обновлении товара');
+      }
+    } catch (error) {
+      console.error('Failed to update product:', error);
+      alert('Ошибка при обновлении товара');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Вы уверены, что хотите удалить товар?')) return;
+
+    try {
+      const response = await fetch(`/api/admin/products/${id}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        setProducts(products.filter(p => p.id !== id));
+      }
+    } catch (error) {
+      console.error('Failed to delete product:', error);
+    }
+  };
+
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      slug: '',
+      description: '',
+      price: '',
+      discountPrice: '',
+      weight: '',
+      imageUrl: '',
+      subCategoryId: '',
+      isFeatured: false,
+    });
+  };
+
+  const closeModal = () => {
+    setEditProduct(null);
+    resetForm();
+  };
 
   if (loading) {
     return (
@@ -44,8 +231,136 @@ export default function AdminProducts() {
     <div>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Управление товарами</h1>
-        <Button>Добавить товар</Button>
+        <Button onClick={() => setShowForm(true)}>Добавить товар</Button>
       </div>
+
+      {showForm && (
+        <Card className="mb-6">
+          <CardContent className="pt-6">
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="name">Название *</Label>
+                  <Input
+                    id="name"
+                    value={formData.name}
+                    onChange={(e) => handleNameChange(e.target.value)}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="slug">Slug *</Label>
+                  <Input
+                    id="slug"
+                    value={formData.slug}
+                    onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="description">Описание</Label>
+                <textarea
+                  id="description"
+                  className="w-full border rounded-md px-3 py-2"
+                  rows={3}
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                />
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <Label htmlFor="price">Цена *</Label>
+                  <Input
+                    id="price"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.price}
+                    onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="discountPrice">Цена со скидкой</Label>
+                  <Input
+                    id="discountPrice"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.discountPrice}
+                    onChange={(e) => setFormData({ ...formData, discountPrice: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="weight">Вес (г)</Label>
+                  <Input
+                    id="weight"
+                    type="number"
+                    min="0"
+                    value={formData.weight}
+                    onChange={(e) => setFormData({ ...formData, weight: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="imageUrl">URL изображения</Label>
+                <Input
+                  id="imageUrl"
+                  type="url"
+                  value={formData.imageUrl}
+                  onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
+                  placeholder="https://..."
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="subCategoryId">Категория</Label>
+                <select
+                  id="subCategoryId"
+                  className="w-full border rounded-md px-3 py-2"
+                  value={formData.subCategoryId}
+                  onChange={(e) => setFormData({ ...formData, subCategoryId: e.target.value })}
+                >
+                  <option value="">Без категории</option>
+                  {categories.map((cat) =>
+                    cat.subCategories.map((sub) => (
+                      <option key={sub.id} value={sub.id}>
+                        {cat.name} / {sub.name}
+                      </option>
+                    ))
+                  )}
+                </select>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <input
+                  id="isFeatured"
+                  type="checkbox"
+                  checked={formData.isFeatured}
+                  onChange={(e) => setFormData({ ...formData, isFeatured: e.target.checked })}
+                  className="h-4 w-4"
+                />
+                <Label htmlFor="isFeatured" className="mb-0">
+                  Рекомендуемый товар
+                </Label>
+              </div>
+
+              <div className="flex gap-2">
+                <Button type="submit" disabled={saving}>
+                  {saving ? 'Сохранение...' : 'Сохранить'}
+                </Button>
+                <Button type="button" variant="outline" onClick={() => { setShowForm(false); resetForm(); }}>
+                  Отмена
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      )}
 
       {products.length === 0 ? (
         <Card>
@@ -79,7 +394,14 @@ export default function AdminProducts() {
                     {product.name}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {product.price} ₽
+                    {product.discountPrice ? (
+                      <>
+                        <span className="text-red-600">{product.discountPrice} ₽</span>
+                        <span className="ml-2 line-through text-gray-400">{product.price} ₽</span>
+                      </>
+                    ) : (
+                      `${product.price} ₽`
+                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span
@@ -93,14 +415,146 @@ export default function AdminProducts() {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <Button variant="outline" size="sm" className="mr-2">
+                    <Button variant="outline" size="sm" className="mr-2" onClick={() => handleEdit(product)}>
                       Изменить
+                    </Button>
+                    <Button variant="outline" size="sm" className="text-red-600" onClick={() => handleDelete(product.id)}>
+                      Удалить
                     </Button>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {editProduct && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <h2 className="text-xl font-bold mb-4">Редактирование товара</h2>
+            <form onSubmit={handleUpdate} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="edit-name">Название *</Label>
+                  <Input
+                    id="edit-name"
+                    value={formData.name}
+                    onChange={(e) => handleNameChange(e.target.value)}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-slug">Slug *</Label>
+                  <Input
+                    id="edit-slug"
+                    value={formData.slug}
+                    onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="edit-description">Описание</Label>
+                <textarea
+                  id="edit-description"
+                  className="w-full border rounded-md px-3 py-2"
+                  rows={3}
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                />
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <Label htmlFor="edit-price">Цена *</Label>
+                  <Input
+                    id="edit-price"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.price}
+                    onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-discountPrice">Цена со скидкой</Label>
+                  <Input
+                    id="edit-discountPrice"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.discountPrice}
+                    onChange={(e) => setFormData({ ...formData, discountPrice: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-weight">Вес (г)</Label>
+                  <Input
+                    id="edit-weight"
+                    type="number"
+                    min="0"
+                    value={formData.weight}
+                    onChange={(e) => setFormData({ ...formData, weight: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="edit-imageUrl">URL изображения</Label>
+                <Input
+                  id="edit-imageUrl"
+                  type="url"
+                  value={formData.imageUrl}
+                  onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
+                  placeholder="https://..."
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="edit-subCategoryId">Категория</Label>
+                <select
+                  id="edit-subCategoryId"
+                  className="w-full border rounded-md px-3 py-2"
+                  value={formData.subCategoryId}
+                  onChange={(e) => setFormData({ ...formData, subCategoryId: e.target.value })}
+                >
+                  <option value="">Без категории</option>
+                  {categories.map((cat) =>
+                    cat.subCategories.map((sub) => (
+                      <option key={sub.id} value={sub.id}>
+                        {cat.name} / {sub.name}
+                      </option>
+                    ))
+                  )}
+                </select>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <input
+                  id="edit-isFeatured"
+                  type="checkbox"
+                  checked={formData.isFeatured}
+                  onChange={(e) => setFormData({ ...formData, isFeatured: e.target.checked })}
+                  className="h-4 w-4"
+                />
+                <Label htmlFor="edit-isFeatured" className="mb-0">
+                  Рекомендуемый товар
+                </Label>
+              </div>
+
+              <div className="flex gap-2">
+                <Button type="submit" disabled={saving}>
+                  {saving ? 'Сохранение...' : 'Сохранить'}
+                </Button>
+                <Button type="button" variant="outline" onClick={closeModal}>
+                  Отмена
+                </Button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>

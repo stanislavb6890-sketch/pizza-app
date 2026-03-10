@@ -111,7 +111,7 @@ model Product {
   subCategoryId  String?  @map("sub_category_id")
   name           String
   slug           String   @unique
-  description    String?
+  description    String?  @db.Text
   imageUrl       String?  @map("image_url")
   price          Decimal  @db.Decimal(10, 2)
   discountPrice  Decimal? @map("discount_price") @db.Decimal(10, 2)
@@ -126,11 +126,31 @@ model Product {
   subCategory SubCategory? @relation(fields: [subCategoryId], references: [id], onDelete: SetNull)
   orderItems  OrderItem[]
   cartItems   CartItem[]
+  extras      ProductExtra[]
 
   @@index([slug])
   @@index([subCategoryId])
   @@index([isAvailable])
   @@map("products")
+}
+
+model ProductExtra {
+  id          String   @id @default(uuid())
+  productId   String   @map("product_id")
+  name        String
+  slug        String
+  price       Decimal  @db.Decimal(10, 2)
+  isDefault   Boolean  @default(false) @map("is_default")
+  sortOrder   Int      @default(0) @map("sort_order")
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, slug])
+  @@index([productId])
+  @@map("product_extras")
 }
 
 // ==================== Cart ====================

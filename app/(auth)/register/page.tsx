@@ -83,7 +83,7 @@ export default function RegisterPage() {
       }
 
       // Redirect to login after successful registration
-      router.push('/auth/login?registered=true');
+      router.push('/login?registered=true');
     } catch (error) {
       setErrors({
         general: error instanceof Error ? error.message : 'Registration failed',
@@ -102,7 +102,7 @@ export default function RegisterPage() {
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
             Already have an account?{' '}
-            <Link href="/auth/login" className="font-medium text-primary-600 hover:text-primary-500">
+            <Link href="/login" className="font-medium text-primary-600 hover:text-primary-500">
               Sign in
             </Link>
           </p>

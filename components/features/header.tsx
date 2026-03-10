@@ -87,7 +87,7 @@ export function Header() {
             </Link>
 
             <Link
-              href="/auth/login"
+              href="/login"
               className="text-sm font-medium text-gray-700 hover:text-primary-600 transition-colors"
             >
               Войти
@@ -130,7 +130,7 @@ export function Header() {
                 </Link>
               ))}
               <Link
-                href="/auth/login"
+                href="/login"
                 className="text-sm font-medium text-gray-700 hover:text-primary-600 transition-colors"
                 onClick={() => setIsMenuOpen(false)}
               >

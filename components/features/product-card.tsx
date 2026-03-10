@@ -29,8 +29,8 @@ export function ProductCard({
   isFeatured,
   onAddToCart,
 }: ProductCardProps) {
-  const hasDiscount = discountPrice && discountPrice < price;
-  const displayPrice = hasDiscount ? discountPrice : price;
+  const hasDiscount = discountPrice && Number(discountPrice) < price;
+  const displayPrice = hasDiscount ? Number(discountPrice) : Number(price);
 
   const handleAddToCart = () => {
     onAddToCart(id, name, displayPrice);
@@ -77,9 +77,9 @@ export function ProductCard({
             onClick={handleAddToCart}
             disabled={!isAvailable}
             size="sm"
-            variant={isAvailable ? 'primary' : 'secondary'}
+            variant={isAvailable ? 'secondary' : 'secondary'}
           >
-            {!isAvailable ? 'Нет' : 'В корзину'}
+            {!isAvailable ? 'Нет' : 'Подробнее'}
           </Button>
         </div>
       </CardContent>

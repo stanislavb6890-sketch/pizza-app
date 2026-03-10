@@ -105,10 +105,10 @@ export default function MenuPage() {
 
   const getTotalPrice = () => {
     if (!selectedProduct) return 0;
-    const basePrice = selectedProduct.discountPrice || selectedProduct.price;
+    const basePrice = Number(selectedProduct.discountPrice || selectedProduct.price);
     const extrasPrice = Object.keys(selectedExtras).reduce((sum, id) => {
       const extra = extras.find(e => e.id === id);
-      return sum + (extra?.price || 0);
+      return sum + Number(extra?.price || 0);
     }, 0);
     return (basePrice + extrasPrice) * quantity;
   };

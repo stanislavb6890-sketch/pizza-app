@@ -27,6 +27,7 @@ function LoginForm() {
 
   const [errors, setErrors] = useState<FormErrors>({});
   const [isLoading, setIsLoading] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
@@ -56,7 +57,8 @@ function LoginForm() {
     setErrors({});
 
     try {
-      const response = await fetch('/api/auth/login', {
+      const url = isAdmin ? '/api/auth/admin-login' : '/api/auth/login';
+      const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
@@ -72,7 +74,8 @@ function LoginForm() {
       }
 
       // Redirect to the original page or home
-      window.location.href = redirect;
+      const targetUrl = isAdmin ? '/admin' : redirect;
+      window.location.href = targetUrl;
     } catch (error) {
       setErrors({
         general: error instanceof Error ? error.message : 'Login failed',
@@ -134,13 +137,27 @@ function LoginForm() {
               required
               className={`appearance-none rounded-none relative block w-full px-3 py-2 border ${
                 errors.password ? 'border-red-300' : 'border-gray-300'
-              } placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm`}
+              } placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm`}
               placeholder="Password"
               value={formData.password}
               onChange={(e) => setFormData({ ...formData, password: e.target.value })}
             />
             {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
           </div>
+        </div>
+
+        <div className="flex items-center">
+          <input
+            id="isAdmin"
+            name="isAdmin"
+            type="checkbox"
+            checked={isAdmin}
+            onChange={(e) => setIsAdmin(e.target.checked)}
+            className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+          />
+          <label htmlFor="isAdmin" className="ml-2 block text-sm text-gray-900">
+            Войти как админ
+          </label>
         </div>
 
         <div>

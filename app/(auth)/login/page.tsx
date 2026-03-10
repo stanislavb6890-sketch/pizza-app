@@ -72,10 +72,7 @@ function LoginForm() {
       }
 
       // Redirect to the original page or home
-      if (typeof window !== 'undefined') {
-        alert('Login successful! Redirecting...');
-        window.location.href = redirect + '?loggedin=1';
-      }
+      window.location.href = redirect;
     } catch (error) {
       setErrors({
         general: error instanceof Error ? error.message : 'Login failed',

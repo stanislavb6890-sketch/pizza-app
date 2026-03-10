@@ -4,6 +4,8 @@ import { authService } from '@/core/auth';
 import { ApiError } from '@/core/errors';
 import { prisma } from '@/db/prisma';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * GET /api/orders
  * Get user's order history

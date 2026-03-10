@@ -65,6 +65,7 @@ export default function AdminProducts() {
   const [showExtras, setShowExtras] = useState(false);
   const [extras, setExtras] = useState<ProductExtra[]>([]);
   const [newExtra, setNewExtra] = useState({ name: '', price: '' });
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     slug: '',
@@ -407,13 +408,55 @@ export default function AdminProducts() {
               </div>
 
               <div>
-                <Label htmlFor="imageUrl">URL изображения</Label>
+                <Label>Изображение</Label>
+                <div className="flex gap-2 items-start">
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      setUploadingImage(true);
+                      try {
+                        const uploadFormData = new FormData();
+                        uploadFormData.append('file', file);
+                        const response = await fetch('/api/upload', {
+                          method: 'POST',
+                          body: uploadFormData,
+                        });
+                        if (response.ok) {
+                          const data = await response.json();
+                          setFormData(prev => ({ ...prev, imageUrl: data.data.url }));
+                        }
+                      } catch (error) {
+                        console.error('Upload failed:', error);
+                      } finally {
+                        setUploadingImage(false);
+                      }
+                    }}
+                    className="flex-1"
+                  />
+                  {uploadingImage && <span className="text-sm text-gray-500">Загрузка...</span>}
+                </div>
+                {formData.imageUrl && (
+                  <div className="mt-2">
+                    <img src={formData.imageUrl} alt="Preview" className="h-20 w-20 object-cover rounded" />
+                    <button
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, imageUrl: '' }))}
+                      className="text-red-500 text-sm mt-1"
+                    >
+                      Удалить
+                    </button>
+                  </div>
+                )}
                 <Input
                   id="imageUrl"
                   type="url"
                   value={formData.imageUrl}
-                  onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
-                  placeholder="https://..."
+                  onChange={(e) => setFormData(prev => ({ ...prev, imageUrl: e.target.value }))}
+                  placeholder="Или введите URL вручную"
+                  className="mt-2"
                 />
               </div>
 

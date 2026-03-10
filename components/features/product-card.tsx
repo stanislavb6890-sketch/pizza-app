@@ -62,6 +62,8 @@ export function ProductCard({
       const data = await response.json();
       if (response.ok) {
         setIsFavorite(data.data.favorited);
+      } else if (data.error === 'SESSION_EXPIRED') {
+        alert('Сессия истекла. Войдите снова.');
       } else {
         alert(data.message || 'Войдите, чтобы добавить в избранное');
       }

@@ -1,12 +1,31 @@
 import { ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
+import { authService } from '@/core/auth';
 
 interface AdminLayoutProps {
   children: ReactNode;
 }
 
-export default function AdminLayout({ children }: AdminLayoutProps) {
+export default async function AdminLayout({ children }: AdminLayoutProps) {
+  const cookieStore = cookies();
+  const token = cookieStore.get('accessToken')?.value;
+
+  if (!token) {
+    redirect('/login?redirect=/admin/dashboard');
+  }
+
+  try {
+    const payload = authService.verifyAccessTokenSync(token);
+    if (payload.role !== 'admin' && payload.role !== 'super_admin') {
+      redirect('/');
+    }
+  } catch {
+    redirect('/login?redirect=/admin/dashboard');
+  }
+
   return (
     <div className="min-h-screen bg-gray-100">
       <nav className="bg-white shadow-sm border-b">

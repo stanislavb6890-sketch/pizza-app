@@ -11,6 +11,7 @@ interface ProductCardProps {
   name: string;
   slug: string;
   description?: string | null;
+  composition?: string | null;
   imageUrl?: string | null;
   price: number;
   discountPrice?: number | null;
@@ -23,6 +24,7 @@ export function ProductCard({
   id,
   name,
   description,
+  composition,
   imageUrl,
   price,
   discountPrice,
@@ -128,6 +130,12 @@ export function ProductCard({
           <CardDescription className="mt-1 line-clamp-2 flex-1">
             {description}
           </CardDescription>
+        )}
+
+        {composition && (
+          <p className="text-xs text-gray-500 mt-1 line-clamp-1">
+            Состав: {composition}
+          </p>
         )}
         
         <div className="mt-4 flex items-center justify-between">

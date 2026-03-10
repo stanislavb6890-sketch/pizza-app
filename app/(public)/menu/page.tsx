@@ -134,6 +134,7 @@ export default function MenuPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ rating: userRating, comment: reviewComment }),
       });
+      const data = await response.json();
       if (response.ok) {
         const reviewsRes = await fetch(`/api/products/${selectedProduct.id}/reviews`);
         if (reviewsRes.ok) {
@@ -145,9 +146,12 @@ export default function MenuPage() {
         setReviewComment('');
         setNotification('Отзыв добавлен!');
         setTimeout(() => setNotification(null), 3000);
+      } else {
+        alert(data.message || 'Ошибка при отправке отзыва');
       }
     } catch (error) {
       console.error('Failed to submit review:', error);
+      alert('Ошибка при отправке отзыва');
     } finally {
       setSubmittingReview(false);
     }
@@ -214,6 +218,7 @@ export default function MenuPage() {
           productName: selectedProduct.name + (extraNames.length ? ` (${extraNames.join(', ')})` : ''),
           productPrice: totalPrice,
           quantity: quantity,
+          imageUrl: selectedProduct.imageUrl,
         }),
       });
 

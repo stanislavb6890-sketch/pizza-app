@@ -66,7 +66,11 @@ export async function POST(
       where: { id: payload.userId },
     });
     if (!user) {
-      throw ApiError.unauthorized('USER_NOT_FOUND', 'User not found');
+      return NextResponse.json({
+        success: false,
+        error: 'SESSION_EXPIRED',
+        message: 'Сессия истекла. Войдите снова.',
+      });
     }
 
     const product = await prisma.product.findUnique({

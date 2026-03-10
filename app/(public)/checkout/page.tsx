@@ -182,7 +182,7 @@ export default function CheckoutPage() {
           <div className="border-t mt-4 pt-4 space-y-2">
             <div className="flex justify-between text-gray-600">
               <span>Товары ({cartData.totalQuantity} шт.)</span>
-              <span>{cartData.totalPrice} ₽</span>
+              <span>{Number(cartData.totalPrice)} ₽</span>
             </div>
             <div className="flex justify-between text-gray-600">
               <span>Доставка</span>
@@ -190,7 +190,7 @@ export default function CheckoutPage() {
             </div>
             <div className="border-t pt-2 flex justify-between text-lg font-semibold text-gray-900">
               <span>Итого</span>
-              <span>{cartData.totalPrice} ₽</span>
+              <span>{Number(cartData.totalPrice)} ₽</span>
             </div>
           </div>
         </div>
@@ -226,7 +226,7 @@ export default function CheckoutPage() {
             className="flex-1"
             size="lg"
           >
-            {isSubmitting ? 'Создаем заказ...' : `Заказать на ${cartData.totalPrice} ₽`}
+            {isSubmitting ? 'Создаем заказ...' : `Заказать на ${Number(cartData.totalPrice)} ₽`}
           </Button>
         </div>
       </form>

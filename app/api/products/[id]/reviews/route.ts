@@ -69,6 +69,13 @@ export async function POST(
       throw ApiError.unauthorized('USER_NOT_FOUND', 'User not found');
     }
 
+    const product = await prisma.product.findUnique({
+      where: { id: params.id },
+    });
+    if (!product) {
+      throw ApiError.notFound('PRODUCT_NOT_FOUND', 'Product not found');
+    }
+
     const body = await request.json();
     const { rating, comment } = body;
 

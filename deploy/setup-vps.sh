@@ -300,6 +300,24 @@ setup_database() {
     
     cd "$PROJECT_DIR"
     
+    source /root/.pizza_env
+    DB_URL="$DATABASE_URL"
+    DB_USER=$(echo "$DB_URL" | sed -n 's/.*\/\/\([^:]*\):.*/\1/p')
+    DB_PASS=$(echo "$DB_URL" | sed -n 's/.*:\/\/[^:]*:\([^@]*\)@.*/\1/p')
+    DB_NAME=$(echo "$DB_URL" | sed -n 's/.*\/\([^?]*\).*/\1/p')
+    
+    log "Проверка подключения к БД..."
+    if ! mysql -u "$DB_USER" -p"$DB_PASS" -e "SELECT 1" "$DB_NAME" > /dev/null 2>&1; then
+        log "Ошибка подключения, пересоздаем пользователя MySQL..."
+        mysql -u root <<EOF
+DROP USER IF EXISTS '$DB_USER'@'localhost';
+CREATE USER '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASS';
+GRANT ALL PRIVILEGES ON $DB_NAME.* TO '$DB_USER'@'localhost';
+FLUSH PRIVILEGES;
+EOF
+        log "Пользователь MySQL пересоздан"
+    fi
+    
     npx prisma generate --schema=db/prisma/schema.prisma || error "Ошибка генерации Prisma"
     npx prisma db push --schema=db/prisma/schema.prisma --accept-data-loss || error "Ошибка миграции БД"
     

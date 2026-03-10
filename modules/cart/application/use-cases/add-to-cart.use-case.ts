@@ -22,13 +22,14 @@ export class AddToCartUseCase {
       cart = userId ? Cart.createForUser(userId) : Cart.createForSession(sessionId);
     }
 
-    // Create or update cart item
+    // Create or update cart item with extras
     const cartItem = CartItem.create({
       productId: input.productId,
       productName: input.productName,
       productPrice: input.productPrice,
       quantity: input.quantity,
       imageUrl: input.imageUrl,
+      extras: input.extras || [],
     });
 
     cart.addItem(cartItem);
@@ -52,16 +53,17 @@ export class AddToCartUseCase {
     if (!data) return null;
 
     const items = new Map(
-      data.items.map((item) => [
-        item.productId,
-        CartItem.create({
+      data.items.map((item: any) => {
+        const cartItem = CartItem.create({
           productId: item.productId,
           productName: item.productName,
           productPrice: item.productPrice,
           quantity: item.quantity,
           imageUrl: item.imageUrl,
-        }),
-      ])
+          extras: item.extras || [],
+        });
+        return [cartItem.getUniqueKey(), cartItem];
+      })
     );
 
     return Cart.fromPersistence({

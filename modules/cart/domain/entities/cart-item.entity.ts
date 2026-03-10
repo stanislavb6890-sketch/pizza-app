@@ -4,6 +4,11 @@ export interface CartItemProps {
   productPrice: number;
   quantity: number;
   imageUrl?: string;
+  extras?: Array<{
+    id: string;
+    name: string;
+    price: number;
+  }>;
 }
 
 export class CartItem {
@@ -36,8 +41,16 @@ export class CartItem {
     return this.props.imageUrl;
   }
 
+  get extras(): Array<{ id: string; name: string; price: number }> {
+    return this.props.extras || [];
+  }
+
+  get extrasPrice(): number {
+    return (this.props.extras || []).reduce((sum, extra) => sum + extra.price, 0);
+  }
+
   get totalPrice(): number {
-    return this.props.productPrice * this.props.quantity;
+    return (this.productPrice + this.extrasPrice) * this.props.quantity;
   }
 
   updateQuantity(quantity: number): void {
@@ -58,7 +71,19 @@ export class CartItem {
     this.props.quantity -= amount;
   }
 
-  toJSON(): CartItemProps & { totalPrice: number } {
-    return { ...this.props, totalPrice: this.totalPrice };
+  getUniqueKey(): string {
+    const extrasStr = (this.props.extras || [])
+      .sort((a, b) => a.id.localeCompare(b.id))
+      .map(e => e.id)
+      .join(',');
+    return `${this.props.productId}:${extrasStr}`;
+  }
+
+  toJSON(): CartItemProps & { totalPrice: number; extrasPrice: number } {
+    return { 
+      ...this.props, 
+      totalPrice: this.totalPrice,
+      extrasPrice: this.extrasPrice 
+    };
   }
 }

@@ -1,5 +1,6 @@
 import { RedisCacheService } from '@/infra/redis';
 import { Cart, CartItem } from '@modules/cart/domain';
+import type { UpdateCartItemInput } from '../schemas';
 
 const CART_TTL_SECONDS = 7 * 24 * 60 * 60; // 7 days
 
@@ -13,8 +14,8 @@ export class UpdateCartItemUseCase {
   async execute(
     userId: string | undefined,
     sessionId: string,
-    productId: string,
-    quantity: number
+    uniqueKey: string,
+    input: UpdateCartItemInput
   ): Promise<Cart> {
     const cartKey = this.getCartKey(userId, sessionId);
     let cart = await this.getCart(cartKey);
@@ -23,14 +24,11 @@ export class UpdateCartItemUseCase {
       return Cart.createForSession(sessionId);
     }
 
-    if (quantity < 1) {
-      cart.removeItem(productId);
-      if (cart.isEmpty()) {
-        await this.redisService.delete(cartKey);
-        return cart;
-      }
-    } else {
-      cart.updateItemQuantity(productId, quantity);
+    cart.updateItemQuantity(uniqueKey, input.quantity);
+
+    if (cart.isEmpty()) {
+      await this.redisService.delete(cartKey);
+      return cart;
     }
 
     await this.saveCart(cartKey, cart);
@@ -50,16 +48,17 @@ export class UpdateCartItemUseCase {
     if (!data) return null;
 
     const items = new Map(
-      data.items.map((item) => [
-        item.productId,
-        CartItem.create({
+      data.items.map((item: any) => {
+        const cartItem = CartItem.create({
           productId: item.productId,
           productName: item.productName,
           productPrice: item.productPrice,
           quantity: item.quantity,
           imageUrl: item.imageUrl,
-        }),
-      ])
+          extras: item.extras || [],
+        });
+        return [cartItem.getUniqueKey(), cartItem];
+      })
     );
 
     return Cart.fromPersistence({

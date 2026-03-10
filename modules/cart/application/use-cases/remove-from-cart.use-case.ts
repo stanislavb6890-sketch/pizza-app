@@ -1,5 +1,6 @@
 import { RedisCacheService } from '@/infra/redis';
 import { Cart, CartItem } from '@modules/cart/domain';
+import type { RemoveCartItemInput } from '../schemas';
 
 const CART_TTL_SECONDS = 7 * 24 * 60 * 60; // 7 days
 
@@ -10,7 +11,7 @@ export class RemoveFromCartUseCase {
     this.redisService = new RedisCacheService();
   }
 
-  async execute(userId: string | undefined, sessionId: string, productId: string): Promise<Cart> {
+  async execute(userId: string | undefined, sessionId: string, input: RemoveCartItemInput): Promise<Cart> {
     const cartKey = this.getCartKey(userId, sessionId);
     let cart = await this.getCart(cartKey);
 
@@ -18,7 +19,7 @@ export class RemoveFromCartUseCase {
       return Cart.createForSession(sessionId);
     }
 
-    cart.removeItem(productId);
+    cart.removeItem(input.uniqueKey);
 
     if (cart.isEmpty()) {
       await this.redisService.delete(cartKey);
@@ -42,16 +43,17 @@ export class RemoveFromCartUseCase {
     if (!data) return null;
 
     const items = new Map(
-      data.items.map((item) => [
-        item.productId,
-        CartItem.create({
+      data.items.map((item: any) => {
+        const cartItem = CartItem.create({
           productId: item.productId,
           productName: item.productName,
           productPrice: item.productPrice,
           quantity: item.quantity,
           imageUrl: item.imageUrl,
-        }),
-      ])
+          extras: item.extras || [],
+        });
+        return [cartItem.getUniqueKey(), cartItem];
+      })
     );
 
     return Cart.fromPersistence({

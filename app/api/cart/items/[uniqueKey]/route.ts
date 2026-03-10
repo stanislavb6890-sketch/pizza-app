@@ -3,12 +3,12 @@ import { updateCartItemUseCase, removeFromCartUseCase } from '@/modules/cart/app
 import { ApiError } from '@/core/errors';
 
 /**
- * PUT /api/cart/items/[productId]
+ * PUT /api/cart/items/[uniqueKey]
  * Update item quantity in cart
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { productId: string } }
+  { params }: { params: { uniqueKey: string } }
 ) {
   try {
     const body = await request.json();
@@ -27,7 +27,7 @@ export async function PUT(
     // Get user ID
     const userId = request.cookies.get('userId')?.value;
 
-    const cart = await updateCartItemUseCase.execute(userId, sessionId, params.productId, quantity);
+    const cart = await updateCartItemUseCase.execute(userId, sessionId, params.uniqueKey, { quantity });
 
     return NextResponse.json({
       success: true,
@@ -50,12 +50,12 @@ export async function PUT(
 }
 
 /**
- * DELETE /api/cart/items/[productId]
+ * DELETE /api/cart/items/[uniqueKey]
  * Remove item from cart
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { productId: string } }
+  { params }: { params: { uniqueKey: string } }
 ) {
   try {
     // Get session ID
@@ -67,7 +67,7 @@ export async function DELETE(
     // Get user ID
     const userId = request.cookies.get('userId')?.value;
 
-    const cart = await removeFromCartUseCase.execute(userId, sessionId, params.productId);
+    const cart = await removeFromCartUseCase.execute(userId, sessionId, { uniqueKey: params.uniqueKey });
 
     return NextResponse.json({
       success: true,

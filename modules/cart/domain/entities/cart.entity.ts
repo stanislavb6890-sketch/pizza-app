@@ -58,24 +58,29 @@ export class Cart {
   }
 
   addItem(item: CartItem): void {
-    const existing = this.props.items.get(item.productId);
+    const uniqueKey = item.getUniqueKey();
+    const existing = this.props.items.get(uniqueKey);
     if (existing) {
       existing.increment(item.quantity);
     } else {
-      this.props.items.set(item.productId, item);
+      this.props.items.set(uniqueKey, item);
     }
     this.props.updatedAt = new Date();
   }
 
-  removeItem(productId: string): void {
-    this.props.items.delete(productId);
+  removeItem(uniqueKey: string): void {
+    this.props.items.delete(uniqueKey);
     this.props.updatedAt = new Date();
   }
 
-  updateItemQuantity(productId: string, quantity: number): void {
-    const item = this.props.items.get(productId);
+  updateItemQuantity(uniqueKey: string, quantity: number): void {
+    const item = this.props.items.get(uniqueKey);
     if (item) {
-      item.updateQuantity(quantity);
+      if (quantity <= 0) {
+        this.props.items.delete(uniqueKey);
+      } else {
+        item.updateQuantity(quantity);
+      }
       this.props.updatedAt = new Date();
     }
   }

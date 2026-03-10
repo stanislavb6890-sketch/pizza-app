@@ -9,12 +9,25 @@ interface CartItem {
   productPrice: number;
   quantity: number;
   imageUrl?: string | null;
+  extras?: Array<{
+    id: string;
+    name: string;
+    price: number;
+  }>;
 }
 
 interface CartData {
   items: CartItem[];
   totalQuantity: number;
   totalPrice: number;
+}
+
+function generateUniqueKey(item: CartItem): string {
+  const extrasStr = (item.extras || [])
+    .sort((a, b) => a.id.localeCompare(b.id))
+    .map(e => e.id)
+    .join(',');
+  return `${item.productId}:${extrasStr}`;
 }
 
 export default function CartPage() {
@@ -39,9 +52,9 @@ export default function CartPage() {
     fetchCart();
   }, []);
 
-  const updateQuantity = async (productId: string, quantity: number) => {
+  const updateQuantity = async (uniqueKey: string, quantity: number) => {
     try {
-      const response = await fetch(`/api/cart/items/${productId}`, {
+      const response = await fetch(`/api/cart/items/${encodeURIComponent(uniqueKey)}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ quantity }),
@@ -56,9 +69,9 @@ export default function CartPage() {
     }
   };
 
-  const removeItem = async (productId: string) => {
+  const removeItem = async (uniqueKey: string) => {
     try {
-      const response = await fetch(`/api/cart/items/${productId}`, {
+      const response = await fetch(`/api/cart/items/${encodeURIComponent(uniqueKey)}`, {
         method: 'DELETE',
       });
 
@@ -80,6 +93,11 @@ export default function CartPage() {
     }
   };
 
+  const itemsWithKeys = cartData.items.map(item => ({
+    ...item,
+    uniqueKey: generateUniqueKey(item),
+  }));
+
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -93,7 +111,7 @@ export default function CartPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <Cart
-        items={cartData.items}
+        items={itemsWithKeys}
         onUpdateQuantity={updateQuantity}
         onRemove={removeItem}
         onClear={clearCart}

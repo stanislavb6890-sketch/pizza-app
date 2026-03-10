@@ -1,36 +1,43 @@
 'use client';
 
-import Image from 'next/image';
 import { QuantityControl } from '@/components/features/quantity-control';
 import { Button } from '@/components/ui/button';
 
 interface CartItemProps {
+  uniqueKey: string;
   productId: string;
   productName: string;
   productPrice: number;
   quantity: number;
   imageUrl?: string | null;
-  onUpdateQuantity: (productId: string, quantity: number) => void;
-  onRemove: (productId: string) => void;
+  extras?: Array<{
+    id: string;
+    name: string;
+    price: number;
+  }>;
+  onUpdateQuantity: (uniqueKey: string, quantity: number) => void;
+  onRemove: (uniqueKey: string) => void;
 }
 
 export function CartItemComponent({
-  productId,
+  uniqueKey,
   productName,
   productPrice,
   quantity,
   imageUrl,
+  extras = [],
   onUpdateQuantity,
   onRemove,
 }: CartItemProps) {
-  const totalPrice = productPrice * quantity;
+  const extrasPrice = extras.reduce((sum, extra) => sum + extra.price, 0);
+  const totalPrice = (productPrice + extrasPrice) * quantity;
 
   const handleQuantityChange = (newQuantity: number) => {
-    onUpdateQuantity(productId, newQuantity);
+    onUpdateQuantity(uniqueKey, newQuantity);
   };
 
   const handleRemove = () => {
-    onRemove(productId);
+    onRemove(uniqueKey);
   };
 
   return (
@@ -53,7 +60,20 @@ export function CartItemComponent({
 
       <div className="flex-1 min-w-0">
         <h3 className="text-sm font-medium text-gray-900 truncate">{productName}</h3>
-        <p className="text-sm text-gray-500 mt-1">{productPrice} ₽ за шт.</p>
+        
+        {extras.length > 0 && (
+          <div className="text-xs text-gray-500 mt-1">
+            {extras.map(extra => (
+              <span key={extra.id} className="mr-2">
+                + {extra.name} ({extra.price} ₽)
+              </span>
+            ))}
+          </div>
+        )}
+        
+        <p className="text-sm text-gray-500">
+          {productPrice} ₽ {extrasPrice > 0 && `+ ${extrasPrice} ₽`} за шт.
+        </p>
         
         <div className="mt-2 flex items-center gap-4">
           <QuantityControl

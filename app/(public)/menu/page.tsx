@@ -204,9 +204,9 @@ export default function MenuPage() {
     if (!selectedProduct) return;
 
     const totalPrice = getTotalPrice();
-    const extraNames = Object.keys(selectedExtras).map(id => {
+    const selectedExtrasList = Object.keys(selectedExtras).map(id => {
       const extra = extras.find(e => e.id === id);
-      return extra?.name;
+      return extra ? { id: extra.id, name: extra.name, price: Number(extra.price) } : null;
     }).filter(Boolean);
 
     try {
@@ -215,10 +215,11 @@ export default function MenuPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           productId: selectedProduct.id,
-          productName: selectedProduct.name + (extraNames.length ? ` (${extraNames.join(', ')})` : ''),
-          productPrice: totalPrice,
+          productName: selectedProduct.name,
+          productPrice: selectedProduct.discountPrice ? Number(selectedProduct.discountPrice) : Number(selectedProduct.price),
           quantity: quantity,
           imageUrl: selectedProduct.imageUrl,
+          extras: selectedExtrasList,
         }),
       });
 

@@ -43,7 +43,7 @@ export function ProductCard({
       if (response.ok) {
         const data = await response.json();
         const favorites = data.data || [];
-        setIsFavorite(favorites.some((p: any) => p.id === id));
+        setIsFavorite(favorites.some((p: { id: string }) => p.id === id));
       }
     } catch {
       // Not logged in or error
@@ -59,12 +59,15 @@ export function ProductCard({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ productId: id }),
       });
+      const data = await response.json();
       if (response.ok) {
-        const data = await response.json();
         setIsFavorite(data.data.favorited);
+      } else {
+        alert(data.message || 'Войдите, чтобы добавить в избранное');
       }
     } catch (error) {
       console.error('Failed to toggle favorite:', error);
+      alert('Ошибка при добавлении в избранное');
     } finally {
       setFavoriteLoading(false);
     }
@@ -101,9 +104,9 @@ export function ProductCard({
           </Badge>
         )}
         <button
+          type="button"
           onClick={handleFavorite}
-          disabled={favoriteLoading}
-          className="absolute bottom-2 right-2 p-2 rounded-full bg-white shadow-md hover:bg-gray-50 transition-colors"
+          className={`absolute bottom-2 right-2 p-2 rounded-full bg-white shadow-md hover:bg-gray-50 transition-colors ${favoriteLoading ? 'opacity-50' : ''}`}
         >
           <svg
             className={`w-5 h-5 ${isFavorite ? 'text-red-500 fill-current' : 'text-gray-400'}`}

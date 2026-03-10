@@ -1,6 +1,6 @@
 # Pizza Delivery Platform - Сводка изменений
 
-## Последнее обновление: 2026-03-10
+## Последнее обновление: 2026-03-11
 
 ---
 
@@ -15,6 +15,7 @@
   - Поле "Состав" (composition)
   - Вес товара
   - Управление допами (extras) в модалке
+  - **Загрузка фото** - локальный preview + загрузка на сервер
 
 ### 2. Админ-панель - Управление категориями
 - **Страница**: `app/admin/categories/page.tsx`
@@ -32,7 +33,25 @@
   - Количество с кнопками +/-
   - Автоматический подсчёт итоговой цены
 
-### 4. API endpoints
+### 4. Корзина
+- **Страница**: `app/(public)/cart/page.tsx`
+- **Функционал**:
+  - Отображение допов (extras) для каждого товара
+  - Удаление товаров по uniqueKey
+  - Обновление количества
+
+### 5. Оформление заказа
+- **Страница**: `app/(public)/checkout/page.tsx`
+- **Функционал**:
+  - Проверка авторизации перед оформлением
+  - Понятные сообщения об ошибках
+
+### 6. Избранное
+- **Страница**: `components/features/product-card.tsx`
+- **Исправлено**:
+  - Понятное сообщение при попытке добавить без авторизации
+
+### 7. API endpoints
 
 | Endpoint | Описание |
 |----------|----------|
@@ -70,29 +89,28 @@
 
 ```bash
 cd /var/www/pizza-delivery
-
-# 1. Стянуть изменения
 git pull
-
-# 2. Сгенерировать Prisma клиент
 npx prisma generate --schema=db/prisma/schema.prisma
-
-# 3. Применить миграции
 npx prisma db push --schema=db/prisma/schema.prisma
-
-# 4. Пересобрать
 npm run build
-
-# 5. Перезапустить
 pm2 restart pizza-delivery
 ```
 
 ---
 
 ## Текущие issues / TODO
-- [ ] Исправить API extras - показывают ошибку LSP но работают
 - [ ] Unit тесты на транслитерацию
 - [ ] Страница extras для админов
+
+---
+
+## Последние коммиты
+
+| Хеш | Дата | Описание |
+|------|------|----------|
+| `579cf6a` | 2026-03-11 | fix: resolve favorites, cart extras, checkout auth, composition, image preview |
+| `c41e5ef` | 2026-03-11 | fix: resolve cart uniqueKey type error and useEffect dependencies |
+| `ac23d78` | 2026-03-10 | feat: add extras support to cart - separate items with different extras |
 
 ---
 

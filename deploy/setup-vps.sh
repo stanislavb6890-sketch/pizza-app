@@ -209,8 +209,8 @@ setup_database() {
     
     cd "$PROJECT_DIR"
     
-    npx prisma generate || error "Ошибка генерации Prisma"
-    npx prisma db push --accept-data-loss || error "Ошибка миграции БД"
+    npx prisma generate --schema=db/prisma/schema.prisma || error "Ошибка генерации Prisma"
+    npx prisma db push --schema=db/prisma/schema.prisma --accept-data-loss || error "Ошибка миграции БД"
     
     log "База данных настроена"
 }

@@ -65,8 +65,8 @@ migrate_db() {
     log "Применение миграций..."
     
     cd "$PROJECT_DIR"
-    npx prisma migrate deploy
-    npx prisma generate
+    npx prisma db push --schema=db/prisma/schema.prisma --accept-data-loss
+    npx prisma generate --schema=db/prisma/schema.prisma
 }
 
 restart_app() {

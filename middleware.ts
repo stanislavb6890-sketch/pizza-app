@@ -7,6 +7,7 @@ import { ApiError } from '@/core/errors';
 const publicRoutes = [
   '/api/health',
   '/api/auth/login',
+  '/api/auth/admin-login',
   '/api/auth/register',
   '/api/auth/refresh',
   '/api/products',

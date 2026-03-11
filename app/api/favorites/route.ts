@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
         success: false,
         error: 'SESSION_EXPIRED',
         message: 'Сессия истекла. Войдите снова.',
-      });
+      }, { status: 401 });
     }
 
     const body = await request.json();

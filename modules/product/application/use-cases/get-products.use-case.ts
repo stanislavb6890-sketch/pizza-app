@@ -1,9 +1,13 @@
 import { prisma } from '@/db/prisma';
 import { Product } from '@modules/product/domain';
 import type { PaginatedResult } from '@/core/validation';
-import type { Product as PrismaProduct } from '@prisma/client';
+import type { Product as PrismaProduct, SubCategory, Category } from '@prisma/client';
 
-function mapPrismaProduct(product: PrismaProduct): Product {
+type ProductWithSubCategory = PrismaProduct & {
+  subCategory: (SubCategory & { category: Category }) | null;
+};
+
+function mapPrismaProduct(product: ProductWithSubCategory): Product {
   return Product.fromPersistence({
     id: product.id,
     name: product.name,
@@ -66,11 +70,18 @@ export class GetProductsUseCase {
         orderBy: {
           sortOrder: 'asc',
         },
+        include: {
+          subCategory: {
+            include: {
+              category: true,
+            },
+          },
+        },
       }),
       prisma.product.count({ where }),
     ]);
 
-    const products = productsPrisma.map(mapPrismaProduct);
+    const products = productsPrisma.map((p) => mapPrismaProduct(p));
 
     return {
       data: products,

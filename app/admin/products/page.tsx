@@ -436,7 +436,15 @@ export default function AdminProducts() {
                       });
                       if (response.ok) {
                         const data = await response.json();
-                        setFormData(prev => ({ ...prev, imageUrl: data.data.url }));
+                        if (data.success && data.data?.url) {
+                          setFormData(prev => ({ ...prev, imageUrl: data.data.url }));
+                        } else {
+                          console.error('Upload failed:', data);
+                        }
+                      } else {
+                        const errorData = await response.json();
+                        console.error('Upload error:', errorData);
+                        alert('Ошибка загрузки: ' + (errorData.message || 'Unknown error'));
                       }
                     } catch (error) {
                       console.error('Upload failed:', error);

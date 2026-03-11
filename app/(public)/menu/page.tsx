@@ -18,6 +18,21 @@ interface Product {
   weight?: number | null;
   isAvailable: boolean;
   isFeatured: boolean;
+  subCategoryId?: string | null;
+  subCategory?: {
+    id: string;
+    name: string;
+    category: {
+      id: string;
+      name: string;
+    };
+  } | null;
+}
+
+interface Category {
+  id: string;
+  name: string;
+  subCategories: Array<{ id: string; name: string }>;
 }
 
 interface ProductExtra {
@@ -43,6 +58,8 @@ interface CartResponse {
 
 export default function MenuPage() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [notification, setNotification] = useState<string | null>(null);
@@ -71,8 +88,21 @@ export default function MenuPage() {
     }
   };
 
+  const fetchCategories = async () => {
+    try {
+      const response = await fetch('/api/categories');
+      if (response.ok) {
+        const data = await response.json();
+        setCategories(data.data || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch categories:', err);
+    }
+  };
+
   useEffect(() => {
     fetchProducts();
+    fetchCategories();
   }, []);
 
   const openProductModal = async (product: Product) => {
@@ -260,14 +290,28 @@ export default function MenuPage() {
 
   const featuredProducts = products.filter((p) => p.isFeatured);
   const regularProducts = products.filter((p) => !p.isFeatured);
+
+  const filteredByCategory = selectedCategory
+    ? regularProducts.filter((p) => {
+        if (!p.subCategoryId) return false;
+        const subCat = categories
+          .flatMap((c) => c.subCategories)
+          .find((s) => s.id === p.subCategoryId);
+        if (!subCat) return false;
+        const category = categories.find((c) =>
+          c.subCategories.some((s) => s.id === p.subCategoryId)
+        );
+        return category?.id === selectedCategory;
+      })
+    : regularProducts;
   
   const filteredProducts = searchQuery
-    ? products.filter((p) =>
+    ? filteredByCategory.filter((p) =>
         p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         p.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         p.composition?.toLowerCase().includes(searchQuery.toLowerCase())
       )
-    : regularProducts;
+    : filteredByCategory;
 
   const filteredFeatured = searchQuery
     ? []
@@ -317,6 +361,35 @@ export default function MenuPage() {
             )}
           </div>
         </div>
+
+        {/* Categories */}
+        {categories.length > 0 && (
+          <div className="mt-6 flex flex-wrap justify-center gap-2">
+            <button
+              onClick={() => setSelectedCategory('')}
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                selectedCategory === ''
+                  ? 'bg-primary-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              Все
+            </button>
+            {categories.map((category) => (
+              <button
+                key={category.id}
+                onClick={() => setSelectedCategory(category.id)}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                  selectedCategory === category.id
+                    ? 'bg-primary-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                {category.name}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Featured Products */}

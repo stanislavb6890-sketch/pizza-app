@@ -62,12 +62,14 @@ export function ProductCard({
         body: JSON.stringify({ productId: id }),
       });
       const data = await response.json();
-      if (response.ok) {
+      if (response.ok && data.success) {
         setIsFavorite(data.data.favorited);
+      } else if (response.status === 401 || data.error === 'AUTH_REQUIRED') {
+        alert('Войдите, чтобы добавить в избранное');
       } else if (data.error === 'SESSION_EXPIRED') {
         alert('Сессия истекла. Войдите снова.');
       } else {
-        alert(data.message || 'Войдите, чтобы добавить в избранное');
+        alert(data.message || 'Ошибка при добавлении в избранное');
       }
     } catch (error) {
       console.error('Failed to toggle favorite:', error);

@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, memo } from 'react';
 import Image from 'next/image';
+import { motion } from 'framer-motion';
 import { Card, CardImage, CardContent, CardTitle, CardPrice, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -20,7 +21,7 @@ interface ProductCardProps {
   onAddToCart: (productId: string, name: string, price: number) => void;
 }
 
-export function ProductCard({
+export function ProductCardComponent({
   id,
   name,
   description,
@@ -87,8 +88,13 @@ export function ProductCard({
   };
 
   return (
-    <Card className="h-full flex flex-col transition-shadow hover:shadow-lg">
-      <div className="relative">
+    <motion.div
+      whileHover={{ y: -4 }}
+      transition={{ duration: 0.2 }}
+      className="h-full"
+    >
+      <Card className="h-full flex flex-col transition-shadow hover:shadow-lg">
+        <div className="relative overflow-hidden">
         <CardImage 
           src={imageUrl || ''} 
           alt={name}
@@ -154,5 +160,8 @@ export function ProductCard({
         </div>
       </CardContent>
     </Card>
+    </motion.div>
   );
 }
+
+export const ProductCard = memo(ProductCardComponent);

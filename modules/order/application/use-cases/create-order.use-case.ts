@@ -168,7 +168,7 @@ export class CreateOrderUseCase {
   }
 
   private async validateProducts(
-    items: Array<{ productId: string; quantity: number }>
+    items: Array<{ productId: string; quantity: number; productPrice: number; productName: string }>
   ): Promise<
     Array<{
       productId: string;
@@ -204,10 +204,8 @@ export class CreateOrderUseCase {
 
       return {
         productId: item.productId,
-        productName: product.name,
-        price: product.discountPrice
-          ? Number(product.discountPrice)
-          : Number(product.price),
+        productName: item.productName,
+        price: item.productPrice,
         quantity: item.quantity,
       };
     });

@@ -1,5 +1,6 @@
 'use client';
 
+import { motion, AnimatePresence } from 'framer-motion';
 import { CartItemComponent } from '@/components/features/cart-item';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
@@ -29,7 +30,10 @@ export function Cart({ items, onUpdateQuantity, onRemove, onClear }: CartProps) 
   const router = useRouter();
   
   const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
-  const totalPrice = items.reduce((sum, item) => sum + item.productPrice * item.quantity, 0);
+  const totalPrice = items.reduce((sum, item) => {
+    const extrasPrice = (item.extras || []).reduce((s, e) => s + e.price, 0);
+    return sum + (item.productPrice + extrasPrice) * item.quantity;
+  }, 0);
 
   const handleCheckout = () => {
     router.push('/checkout');
@@ -64,20 +68,29 @@ export function Cart({ items, onUpdateQuantity, onRemove, onClear }: CartProps) 
           </h2>
           
           <div className="divide-y">
-            {items.map((item) => (
-              <CartItemComponent
-                key={item.uniqueKey}
-                uniqueKey={item.uniqueKey}
-                productId={item.productId}
-                productName={item.productName}
-                productPrice={item.productPrice}
-                quantity={item.quantity}
-                imageUrl={item.imageUrl}
-                extras={item.extras}
-                onUpdateQuantity={onUpdateQuantity}
-                onRemove={onRemove}
-              />
-            ))}
+            <AnimatePresence>
+              {items.map((item) => (
+                <motion.div
+                  key={item.uniqueKey}
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <CartItemComponent
+                    uniqueKey={item.uniqueKey}
+                    productId={item.productId}
+                    productName={item.productName}
+                    productPrice={item.productPrice}
+                    quantity={item.quantity}
+                    imageUrl={item.imageUrl}
+                    extras={item.extras}
+                    onUpdateQuantity={onUpdateQuantity}
+                    onRemove={onRemove}
+                  />
+                </motion.div>
+              ))}
+            </AnimatePresence>
           </div>
 
           {onClear && (

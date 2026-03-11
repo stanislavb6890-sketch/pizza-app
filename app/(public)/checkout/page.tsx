@@ -41,6 +41,7 @@ export default function CheckoutPage() {
     floor: '',
     comment: '',
   });
+  const [paymentMethod, setPaymentMethod] = useState<'card' | 'cash'>('card');
 
   const fetchCart = useCallback(async () => {
     try {
@@ -96,7 +97,7 @@ export default function CheckoutPage() {
             floor: address.floor,
             comment: address.comment,
           },
-          paymentMethod: 'card' as const,
+          paymentMethod,
         }),
       });
 
@@ -226,16 +227,30 @@ export default function CheckoutPage() {
           </div>
         </div>
 
-        {/* Payment Method - Placeholder */}
+        {/* Payment Method */}
         <div className="bg-white rounded-lg shadow-sm border p-6">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Способ оплаты</h2>
           <div className="space-y-3">
             <label className="flex items-center gap-3 cursor-pointer">
-              <input type="radio" name="payment" value="card" defaultChecked className="w-4 h-4" />
+              <input 
+                type="radio" 
+                name="payment" 
+                value="card" 
+                checked={paymentMethod === 'card'}
+                onChange={() => setPaymentMethod('card')}
+                className="w-4 h-4" 
+              />
               <span>Банковской картой онлайн</span>
             </label>
             <label className="flex items-center gap-3 cursor-pointer">
-              <input type="radio" name="payment" value="cash" className="w-4 h-4" />
+              <input 
+                type="radio" 
+                name="payment" 
+                value="cash" 
+                checked={paymentMethod === 'cash'}
+                onChange={() => setPaymentMethod('cash')}
+                className="w-4 h-4" 
+              />
               <span>Наличными курьеру</span>
             </label>
           </div>

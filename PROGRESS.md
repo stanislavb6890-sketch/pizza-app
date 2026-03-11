@@ -1,3 +1,263 @@
+```markdown
+# 🤖 ИНСТРУКЦИИ ДЛЯ ИИ - Pizza Delivery Platform
+
+## 🎯 ОСНОВНОЙ СТЕК И АРХИТЕКТУРА
+```
+Next.js 14.2.15 (App Router) + TypeScript + Prisma + PostgreSQL
+Clean Architecture: modules/*/domain → application → infrastructure
+НЕ ИЗМЕНЯЙ структуру без согласования!
+```
+
+## 📁 СТРУКТУРА ПРОЕКТА (НЕ ТРОГАЙ)
+```
+app/
+├── (public)/          # Публичные страницы (НЕ admin)
+│   ├── menu/         # ✅ Готово - модалка товара + допы
+│   ├── cart/         # ✅ Готово - uniqueKey + extras
+│   ├── checkout/     # ⚠️ TODO: время, зоны, оплата
+│   └── account/      # ✅ Готово - профиль/адреса/заказы
+├── admin/            # Админка (отдельный layout)
+│   ├── products/     # ✅ Готово - CRUD + фото + extras
+│   ├── categories/   # ✅ Готово - CRUD + подкатегории
+│   ├── banners/      # ✅ Готово
+│   └── dashboard/    # ✅ Графики + стата
+modules/              # Clean Arch - НЕ ЛЕЗЬ БЕЗ ПРИЧИНЫ
+core/                 # auth/config/errors/logger/validation
+db/prisma/schema.prisma # ✅ ProductExtra, Banner, composition
+```
+
+## 🛠️ ПРАВИЛА РАЗРАБОТКИ
+
+### ✅ ДЕЛАЙ ТАК:
+```
+1. Новые API → app/api/[module]/[action]/route.ts
+2. Domain логика → modules/[module]/domain/entities/*.entity.ts
+3. Prisma модели → db/prisma/schema.prisma (только согласованные)
+4. Zod схемы → core/validation/schemas/
+5. useCallback для всех функций в useEffect
+6. uniqueKey = `${productId}-${extrasHash}` в корзине
+7. Транслит slug = transliterate(название)
+```
+
+### ❌ НЕ ДЕЛАЙ:
+```
+❌ НЕ МЕНЯЙ app/(public)/ и app/admin/ структуру
+❌ НЕ ТРОГАЙ core/ без необходимости  
+❌ НЕ ПИШИ SQL-запросы напрямую (только Prisma)
+❌ НЕ ИСПОЛЬЗУЙ useEffect без зависимостей
+❌ НЕ ЗАБЫВАЙ uniqueKey в CartItemComponent
+❌ НЕ МЕНЯЙ деплой-скрипт (prisma generate → build → pm2)
+```
+
+## 🚀 ПРИОРИТЕТНЫЕ TODO (в порядке важности)
+
+### 🔥 КРИТИЧНО ДЛЯ ЗАПУСКА:
+```
+1. [ ] app/(public)/checkout/ - Order модель + создание заказа
+2. [ ] app/admin/orders/ - таблица статусов + назначение курьера
+3. [ ] ЮKassa интеграция в checkout
+4. [ ] Зоны доставки Белово (1 магазин, 2 курьера)
+```
+
+### 🟡 УЛУЧШЕНИЯ:
+```
+5. [ ] app/admin/extras/ - CRUD для ProductExtra
+6. [ ] Telegram бот для курьеров
+7. [ ] SMS уведомления
+```
+
+## 💾 ПРИМЕРЫ ПРАВИЛЬНОГО КОДА
+
+### НОВЫЙ API (app/api/orders/route.ts):
+```ts
+import { NextRequest, NextResponse } from 'next/server'
+import { createOrderUseCase } from '@/modules/order/application/create-order.usecase'
+import { orderValidation } from '@/core/validation/schemas/order.schema'
+
+export async function POST(req: NextRequest) {
+  try {
+    const data = orderValidation.parse(await req.json())
+    const result = await createOrderUseCase.execute(data)
+    return NextResponse.json(result, { status: 201 })
+  } catch (error) {
+    // core/errors/ApiError
+    return NextResponse.json({ error: error.message }, { status: 400 })
+  }
+}
+```
+
+### НОВЫЙ USECASE (modules/order/application/create-order.usecase.ts):
+```ts
+import { Order } from '../domain/entities/order.entity'
+import { IOrderRepository } from '../domain/repositories/order.repository.interface'
+
+export class CreateOrderUseCase {
+  constructor(private orderRepo: IOrderRepository) {}
+
+  async execute(input: CreateOrderInput): Promise<Order> {
+    // Бизнес-логика создания заказа
+    const order = new Order(input)
+    return this.orderRepo.save(order)
+  }
+}
+```
+
+## 🗄️ БАЗА ДАННЫХ - НЕ ИЗМЕНЯЙ БЕЗ ПРИЧИНЫ
+```
+Product: id, name, slug, price, discountPrice, imageUrl, composition, weight
+ProductExtra: id, productId, name, price
+Banner: id, title, subtitle, imageUrl, link, buttonText, isActive, sortOrder
+User: стандартный next-auth
+Address: userId, street, house, entrance, floor, isDefault
+Cart: localStorage (uniqueKey)
+```
+
+## 🔧 ДЕПЛОЙ (НЕ МЕНЯЙ):
+```bash
+git pull && npx prisma generate && npx prisma db push && npm run build && pm2 restart pizza-delivery
+```
+
+## 📞 КОНТАКТЫ РАЗРАБОТЧИКА
+```
+GitHub: stanislavb6890-sketch/pizza-app
+Город: Белово (1 магазин, 2 курьера)
+Масштаб: MVP → локальная доставка
+```
+
+---
+
+**ВСЕ ИЗМЕНЕНИЯ КОПИРУЙ В ЭТОТ ФАЙЛ!** 
+**ПРИ ПЕРЕДАННЫХ НОВЫХ TODO - ЧИТАЙ ЭТО ПЕРВЫМ!**
+```
+
+```markdown
+# 🎨 УЛУЧШЕНИЯ UI/UX - ИНСТРУКЦИИ ДЛЯ ИИ
+
+## 📋 КРИТЕРИИ "КРИВОТА" (что исправлять ПЕРВЫМ)
+
+```
+❌ ТЕКУЩИЕ ПРОБЛЕМЫ:
+- Модалки на мобиле съезжают/перекрывают контент
+- Loading спиннеры вместо скелетонов  
+- Карточки товаров без hover/hover-эффектов
+- Корзина без анимаций при добавлении/удалении
+- Отсутствие glassmorphism/neumorphism
+- Нет progress bar в checkout
+```
+
+## 🛠️ ПРИОРИТЕТНЫЕ ФИКСЫ (выполнять по порядку)
+
+### 1. shadcn/ui + Skeletons (2 часа)
+```bash
+npx shadcn-ui@latest init
+npx shadcn-ui@latest add button card modal dialog badge skeleton
+```
+
+**Где ставить:**
+```
+✅ app/(public)/menu/loading.tsx ← Skeleton для товаров
+✅ app/(public)/cart/loading.tsx  ← Skeleton для корзины  
+✅ components/ui/skeleton.tsx    ← Экспорт для всех скелетонов
+```
+
+### 2. Мобильная адаптивность (3 часа)
+```
+📱 Фиксы Tailwind:
+- Modal: max-h-[90vh] overflow-y-auto sm:max-w-2xl
+- CartItem: grid grid-cols-1 sm:grid-cols-2 gap-4
+- Menu filter: flex flex-wrap gap-2 justify-center
+```
+
+### 3. Framer Motion анимации (2 часа)
+```tsx
+// components/features/product-modal.tsx
+import { motion, AnimatePresence } from 'framer-motion'
+
+<AnimatePresence>
+  <motion.div
+    initial={{ opacity: 0, y: 50 }}
+    animate={{ opacity: 1, y: 0 }}
+    exit={{ opacity: 0, y: 50 }}
+    transition={{ duration: 0.2 }}
+  >
+```
+
+### 4. Performance must-haves
+```
+✅ next/image ВЕЗДЕ:
+<NextImage 
+  src={product.imageUrl} 
+  sizes="(max-width: 768px) 100vw, 300px"
+  priority={index < 3}
+/>
+
+✅ React.memo(ProductCard)
+✅ ISR для категорий: { revalidate: 3600 }
+```
+
+## 🎨 ВИЗУАЛЬНЫЕ УЛУЧШЕНИЯ (по 30 мин каждое)
+
+```
+1. Glassmorphism карточки:
+   backdrop-blur-md bg-white/80 border border-white/50 shadow-xl
+
+2. Hover эффекты:
+   group-hover:scale-105 group-hover:shadow-2xl transition-all
+
+3. Badge для акций/хитов:
+   <Badge variant="destructive">−20%</Badge>
+
+4. Counter анимация в корзине:
+   <motion.span animate={{ scale: [1, 1.1, 1] }}>+1</motion.span>
+```
+
+## 📱 МОБИЛЬНЫЕ ФИЧИ ДЛЯ ДОСТАВКИ
+
+```
+✅ Bottom sheet вместо модалки:
+- react-spring-bottom-sheet
+- Высота auto на мобиле
+
+✅ Swipe-to-delete корзина:
+- react-swipeable
+
+✅ Sticky кнопка "Оформить" в корзине
+```
+
+## 🚀 ПЛАН НА 3 ДНЯ (КОПИРУЙ В PROGRESS.md)
+
+```
+📅 День 1: shadcn + skeletons + next/image
+📅 День 2: Mobile responsive + Framer Motion  
+📅 День 3: Animations + Performance + SEO
+```
+
+## ✅ ГОТОВЫЕ CSS КЛАССЫ (копипаст)
+
+```
+Glass card: "backdrop-blur-md bg-white/80 border border-white/50 shadow-xl hover:shadow-2xl"
+Loading skeleton: "animate-pulse bg-gray-200 rounded-lg h-64"
+Product hover: "group hover:scale-105 transition-all duration-300"
+Badge sale: "absolute top-4 left-4 bg-gradient-to-r from-red-500 to-pink-500 text-xs px-2 py-1 rounded-full"
+Counter: "flex items-center gap-2 bg-orange-100 px-3 py-1 rounded-full text-sm font-medium"
+```
+
+## 🎯 МЕТРИКИ УСПЕХА (после улучшений)
+```
+✅ LCP < 2.5s (next/image + ISR)
+✅ Mobile CLS = 0 (fixed layouts)  
+✅ FCP < 1.8s (skeletons)
+✅ Core Web Vitals → зелёные
+```
+
+---
+
+**ВСЕ ИИ-ОТВЕТЫ ДОЛЖНЫ ССЫЛАТЬСЯ НА ЭТОТ РАЗДЕЛ!**
+**ПЕРЕД ЛЮБЫМ КОДОМ - ПРОВЕРЯЙ ЭТОТ СПИСОК!**
+```
+
+**Скопируй это в PROGRESS.md после инструкций для ИИ** — теперь любой помощник будет понимать, что именно улучшать и в каком порядке. Твой проект получит профессиональный вид за 3 дня! [ppl-ai-file-upload.s3.amazonaws](https://ppl-ai-file-upload.s3.amazonaws.com/web/direct-files/attachments/176442266/254e6565-821f-4b5b-a2f5-97538818b5cd/PROGRESS.md)
+
 # Pizza Delivery Platform - Сводка изменений
 
 ## Последнее обновление: 2026-03-11

@@ -11,6 +11,9 @@ function getUploadDir() {
   return join(process.cwd(), 'public', 'uploads');
 }
 
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();

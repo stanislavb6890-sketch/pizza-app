@@ -11,6 +11,8 @@ const publicRoutes = [
   '/api/auth/register',
   '/api/auth/refresh',
   '/api/products',
+  '/api/upload',
+  '/api/banners',
   '/menu',
   '/',
 ];

@@ -74,6 +74,7 @@ export default function MenuPage() {
   const [reviewComment, setReviewComment] = useState('');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [submittingReview, setSubmittingReview] = useState(false);
+  const [showReviewsModal, setShowReviewsModal] = useState(false);
 
   const fetchProducts = async () => {
     try {
@@ -469,13 +470,33 @@ export default function MenuPage() {
             )}
             
             <div className="p-6">
-              {/* Title and Price */}
+              {/* Title, Price, Reviews Link */}
               <div className="flex justify-between items-start mb-4">
                 <div>
                   <h2 className="text-2xl font-bold">{selectedProduct.name}</h2>
-                  {selectedProduct.weight && (
-                    <p className="text-gray-500">{selectedProduct.weight} г</p>
-                  )}
+                  <div className="flex items-center gap-4 mt-1">
+                    {selectedProduct.weight && (
+                      <p className="text-gray-500">{selectedProduct.weight} г</p>
+                    )}
+                    {averageRating > 0 && (
+                      <button 
+                        onClick={() => setShowReviewsModal(true)}
+                        className="flex items-center gap-1 text-sm text-primary-600 hover:underline"
+                      >
+                        <span className="text-yellow-500">★</span>
+                        <span className="font-medium">{averageRating.toFixed(1)}</span>
+                        <span className="text-gray-400">({reviews.length})</span>
+                      </button>
+                    )}
+                    {averageRating === 0 && (
+                      <button 
+                        onClick={() => setShowReviewsModal(true)}
+                        className="text-sm text-gray-400 hover:text-gray-600"
+                      >
+                        Нет отзывов
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <div className="text-right">
                   {selectedProduct.discountPrice ? (
@@ -504,79 +525,6 @@ export default function MenuPage() {
                   <p className="text-gray-600 text-sm">{selectedProduct.composition}</p>
                 </div>
               )}
-
-              {/* Reviews */}
-              <div className="mb-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <h3 className="font-semibold">Отзывы</h3>
-                  {averageRating > 0 && (
-                    <div className="flex items-center gap-1">
-                      <span className="text-yellow-500">★</span>
-                      <span className="text-sm font-medium">{averageRating.toFixed(1)}</span>
-                      <span className="text-gray-400 text-sm">({reviews.length})</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Add Review */}
-                {isAuthenticated ? (
-                  <div className="bg-gray-50 rounded-lg p-4 mb-4">
-                    <p className="text-sm font-medium mb-2">Оценить товар</p>
-                    <div className="flex gap-1 mb-2">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <button
-                          key={star}
-                          onClick={() => setUserRating(star)}
-                          className={`text-2xl ${star <= userRating ? 'text-yellow-500' : 'text-gray-300'}`}
-                        >
-                          ★
-                        </button>
-                      ))}
-                    </div>
-                    <textarea
-                      value={reviewComment}
-                      onChange={(e) => setReviewComment(e.target.value)}
-                      placeholder="Напишите отзыв (необязательно)"
-                      className="w-full p-2 border rounded-lg text-sm mb-2"
-                      rows={2}
-                    />
-                    <Button
-                      size="sm"
-                      onClick={submitReview}
-                      disabled={userRating === 0 || submittingReview}
-                    >
-                      {submittingReview ? 'Отправка...' : 'Отправить отзыв'}
-                    </Button>
-                  </div>
-                ) : (
-                  <p className="text-sm text-gray-500 mb-4">
-                    <a href="/login" className="text-primary-600 hover:underline">Войдите</a>, чтобы оставить отзыв
-                  </p>
-                )}
-
-                {/* Reviews List */}
-                {reviews.length > 0 ? (
-                  <div className="space-y-3 max-h-48 overflow-y-auto">
-                    {reviews.slice(0, 5).map((review, idx) => (
-                      <div key={idx} className="border-b pb-2">
-                        <div className="flex items-center gap-2 mb-1">
-                          <div className="flex">
-                            {[1, 2, 3, 4, 5].map((star) => (
-                              <span key={star} className={`${star <= review.rating ? 'text-yellow-500' : 'text-gray-300'}`}>★</span>
-                            ))}
-                          </div>
-                          <span className="text-xs text-gray-500">
-                            {review.user.firstName || 'Аноним'} • {new Date(review.createdAt).toLocaleDateString('ru-RU')}
-                          </span>
-                        </div>
-                        {review.comment && <p className="text-sm text-gray-600">{review.comment}</p>}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-gray-500">Отзывов пока нет</p>
-                )}
-              </div>
 
               {/* Extras */}
               {extras.length > 0 && (
@@ -636,6 +584,91 @@ export default function MenuPage() {
                   В корзину
                 </Button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reviews Modal */}
+      {showReviewsModal && selectedProduct && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowReviewsModal(false);
+          }}
+        >
+          <div className="bg-white rounded-lg max-w-lg w-full max-h-[80vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold">Отзывы о {selectedProduct.name}</h2>
+                <button 
+                  onClick={() => setShowReviewsModal(false)}
+                  className="text-gray-400 hover:text-gray-600 text-2xl"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Add Review */}
+              <div className="mb-6">
+                {isAuthenticated ? (
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <p className="text-sm font-medium mb-2">Оценить товар</p>
+                    <div className="flex gap-1 mb-2">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button
+                          key={star}
+                          onClick={() => setUserRating(star)}
+                          className={`text-2xl ${star <= userRating ? 'text-yellow-500' : 'text-gray-300'}`}
+                        >
+                          ★
+                        </button>
+                      ))}
+                    </div>
+                    <textarea
+                      value={reviewComment}
+                      onChange={(e) => setReviewComment(e.target.value)}
+                      placeholder="Напишите отзыв (необязательно)"
+                      className="w-full p-2 border rounded-lg text-sm mb-2"
+                      rows={2}
+                    />
+                    <Button
+                      size="sm"
+                      onClick={submitReview}
+                      disabled={userRating === 0 || submittingReview}
+                    >
+                      {submittingReview ? 'Отправка...' : 'Отправить отзыв'}
+                    </Button>
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500">
+                    <a href="/login" className="text-primary-600 hover:underline">Войдите</a>, чтобы оставить отзыв
+                  </p>
+                )}
+              </div>
+
+              {/* Reviews List */}
+              {reviews.length > 0 ? (
+                <div className="space-y-4">
+                  {reviews.map((review, idx) => (
+                    <div key={idx} className="border-b pb-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="flex">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <span key={star} className={`${star <= review.rating ? 'text-yellow-500' : 'text-gray-300'}`}>★</span>
+                          ))}
+                        </div>
+                        <span className="text-xs text-gray-500">
+                          {review.user.firstName || 'Аноним'} • {new Date(review.createdAt).toLocaleDateString('ru-RU')}
+                        </span>
+                      </div>
+                      {review.comment && <p className="text-sm text-gray-600">{review.comment}</p>}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-center text-gray-500 py-4">Отзывов пока нет</p>
+              )}
             </div>
           </div>
         </div>

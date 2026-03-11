@@ -32,16 +32,17 @@ export class GetCartUseCase {
     if (!data) return null;
 
     const items = new Map(
-      data.items.map((item) => [
-        item.productId,
-        CartItem.create({
+      data.items.map((item) => {
+        const cartItem = CartItem.create({
           productId: item.productId,
           productName: item.productName,
           productPrice: item.productPrice,
           quantity: item.quantity,
           imageUrl: item.imageUrl,
-        }),
-      ])
+          extras: item.extras,
+        });
+        return [cartItem.getUniqueKey(), cartItem];
+      })
     );
 
     return Cart.fromPersistence({

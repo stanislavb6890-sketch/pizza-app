@@ -1,7 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { writeFile, mkdir } from 'fs/promises';
-import { join } from 'path';
+import { join, dirname } from 'path';
 import { existsSync } from 'fs';
+
+function getUploadDir() {
+  const isStandalone = process.env.NEXT_RUNTIME === 'nodejs' && existsSync(join(process.cwd(), 'standalone'));
+  if (isStandalone) {
+    return join(process.cwd(), 'standalone', 'public', 'uploads');
+  }
+  return join(process.cwd(), 'public', 'uploads');
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -34,7 +42,7 @@ export async function POST(request: NextRequest) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    const uploadDir = join(process.cwd(), 'public', 'uploads');
+    const uploadDir = getUploadDir();
     if (!existsSync(uploadDir)) {
       await mkdir(uploadDir, { recursive: true });
     }

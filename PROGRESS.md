@@ -24,7 +24,14 @@
   - CRUD подкатегорий (subcategories)
   - Активация/деактивация, сортировка
 
-### 3. Публичное меню - Модалка товара
+### 3. Админ-панель - Банеры
+- **Страница**: `app/admin/banners/page.tsx`
+- **Функционал**:
+  - CRUD банеров
+  - Заголовок, подзаголовок, изображение, ссылка, текст кнопки
+  - Активация/деактивация, сортировка
+
+### 4. Публичное меню
 - **Страница**: `app/(public)/menu/page.tsx`
 - **Функционал**:
   - При клике на товар открывается модалка
@@ -32,26 +39,52 @@
   - Выбор допов (extras) с чекбоксами
   - Количество с кнопками +/-
   - Автоматический подсчёт итоговой цены
+  - **Фильтр по категориям** - кнопки категорий над товарами
 
-### 4. Корзина
+### 5. Корзина
 - **Страница**: `app/(public)/cart/page.tsx`
 - **Функционал**:
   - Отображение допов (extras) для каждого товара
   - Удаление товаров по uniqueKey
   - Обновление количества
 
-### 5. Оформление заказа
+### 6. Оформление заказа
 - **Страница**: `app/(public)/checkout/page.tsx`
 - **Функционал**:
   - Проверка авторизации перед оформлением
   - Понятные сообщения об ошибках
 
-### 6. Избранное
-- **Страница**: `components/features/product-card.tsx`
+### 7. Избранное
+- **Компонент**: `components/features/product-card.tsx`
 - **Исправлено**:
   - Понятное сообщение при попытке добавить без авторизации
 
-### 7. API endpoints
+### 8. Личный кабинет
+- **Страницы**:
+  - `/account` - профиль (имя, телефон, выход)
+  - `/account/orders` - история заказов
+  - `/account/favorites` - избранное
+  - `/account/addresses` - адреса (добавить, редактировать, удалить, основной)
+  - **Layout** с навигацией
+
+### 9. Главная страница
+- **Страница**: `app/page.tsx`
+- **Функционал**:
+  - **Банер** - загружается из админки, показывается первым
+  - **Хиты продаж** - товары с isFeatured=true
+  - **Акции** - товары со скидкой (discountPrice)
+  - **Преимущества** - блок с иконками
+
+### 10. Админ-панель - Дашборд
+- **Страница**: `app/admin/dashboard/page.tsx`
+- **Функционал**:
+  - График заказов за 7 дней
+  - Статусы заказов (с цветовой индикацией)
+  - Топ продаваемых товаров
+  - Сравнение с вчерашним днём
+  - Ссылка на банеры
+
+### 11. API endpoints
 
 | Endpoint | Описание |
 |----------|----------|
@@ -65,20 +98,27 @@
 | `POST /api/admin/products` | Создать товар |
 | `GET/PUT/DELETE /api/admin/products/[id]` | Товар по ID |
 | `GET /api/products/[id]/extras` | Допы товара для публичного API |
+| `GET/POST /api/admin/banners` | Банеры |
+| `GET/PUT/DELETE /api/admin/banners/[id]` | Банер по ID |
+| `GET /api/banners` | Активные банеры |
+| `GET /api/categories` | Категории для меню |
+| `GET/POST /api/addresses` | Адреса пользователя |
+| `GET/PUT/DELETE /api/addresses/[id]` | Адрес по ID |
+| `POST /api/addresses/[id]/default` | Сделать основным |
+| `PUT /api/auth/profile` | Обновить профиль |
 
-### 5. База данных (Prisma Schema)
+### 12. База данных (Prisma Schema)
 - **Файл**: `db/prisma/schema.prisma`
 - **Добавлено**:
-  - Поле `composition` в модели Product (текстовое, db.Text)
+  - Поле `composition` в модели Product
   - Модель `ProductExtra` для допов к товарам
+  - Модель `Banner` для банеров
 
-### 6. Бизнес-логика
-- **Транслитерация**: Функция `transliterate()` в `create-product.use-case.ts`
-  - Русский → английский (а=а, б=b, пицца=pizza, Пепперони=pepperoni)
-  - Авто-генерация slug при создании товара
-  - Уникальный slug с рандомом если занят
+### 13. Бизнес-логика
+- **Транслитерация**: Функция `transliterate()` - русский → английский
+- **uniqueKey в корзине** - товары с разными допами分开
 
-### 7. Архитектура
+### 14. Архитектура
 - Clean Architecture: `modules/*/domain`, `application`, `infrastructure`
 - Core: `auth`, `config`, `errors`, `logger`, `validation`
 - Next.js App Router
@@ -108,6 +148,10 @@ pm2 restart pizza-delivery
 
 | Хеш | Дата | Описание |
 |------|------|----------|
+| `2734013` | 2026-03-11 | feat: add banners - model, API, admin page, home page with hits and discounts |
+| `4905aca` | 2026-03-11 | fix: favorites error, image upload, add categories to menu |
+| `dfd34c7` | 2026-03-11 | feat: add user account pages - profile, addresses, favorites with API |
+| `4355ff9` | 2026-03-11 | feat: add charts and stats to admin dashboard |
 | `579cf6a` | 2026-03-11 | fix: resolve favorites, cart extras, checkout auth, composition, image preview |
 | `c41e5ef` | 2026-03-11 | fix: resolve cart uniqueKey type error and useEffect dependencies |
 | `ac23d78` | 2026-03-10 | feat: add extras support to cart - separate items with different extras |
@@ -120,14 +164,22 @@ pm2 restart pizza-delivery
 app/
 ├── (public)/          # Публичные страницы
 │   ├── menu/          # Меню с модалкой товара
-│   └── checkout/      # Оформление заказа
+│   ├── cart/          # Корзина
+│   ├── checkout/      # Оформление заказа
+│   └── account/       # Личный кабинет
 ├── admin/             # Админ-панель
 │   ├── products/      # Товары
 │   ├── categories/    # Категории
-│   └── orders/        # Заказы
+│   ├── banners/       # Банеры
+│   ├── orders/        # Заказы
+│   └── dashboard/     # Дашборд
 └── api/               # API endpoints
     ├── admin/         # Админские API
-    └── products/      # Публичные API
+    ├── products/      # Публичные API товаров
+    ├── categories/    # Категории
+    ├── banners/       # Банеры
+    ├── addresses/     # Адреса
+    └── auth/          # Авторизация
 
 modules/
 ├── cart/              # Корзина

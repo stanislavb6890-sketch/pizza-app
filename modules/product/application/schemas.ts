@@ -6,7 +6,7 @@ export const createProductSchema = z.object({
   slug: z.string().min(1, 'Slug is required').regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Invalid slug format').optional(),
   description: z.string().max(5000).optional(),
   composition: z.string().max(2000).optional(),
-  imageUrl: z.string().url().optional().or(z.literal('')),
+  imageUrl: z.string().optional().or(z.literal('')),
   price: z.number().positive('Price must be positive'),
   discountPrice: z.number().positive().optional(),
   weight: z.number().positive().optional(),

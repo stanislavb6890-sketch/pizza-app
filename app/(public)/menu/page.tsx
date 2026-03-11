@@ -442,8 +442,21 @@ export default function MenuPage() {
 
       {/* Product Modal */}
       {selectedProduct && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) closeModal();
+          }}
+        >
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto relative">
+            {/* Close button */}
+            <button 
+              onClick={closeModal}
+              className="absolute top-3 right-3 bg-white rounded-full p-2 shadow z-10 hover:bg-gray-100"
+            >
+              ✕
+            </button>
+            
             {/* Product Image */}
             {selectedProduct.imageUrl && (
               <div className="relative h-64 w-full">
@@ -452,12 +465,6 @@ export default function MenuPage() {
                   alt={selectedProduct.name}
                   className="w-full h-full object-cover rounded-t-lg"
                 />
-                <button 
-                  onClick={closeModal}
-                  className="absolute top-2 right-2 bg-white rounded-full p-2 shadow"
-                >
-                  ✕
-                </button>
               </div>
             )}
             

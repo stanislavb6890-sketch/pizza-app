@@ -66,6 +66,7 @@ export default function AdminProducts() {
   const [extras, setExtras] = useState<ProductExtra[]>([]);
   const [newExtra, setNewExtra] = useState({ name: '', price: '' });
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [imageInputMode, setImageInputMode] = useState<'file' | 'url'>('file');
   const [formData, setFormData] = useState({
     name: '',
     slug: '',
@@ -409,51 +410,80 @@ export default function AdminProducts() {
 
               <div>
                 <Label>Изображение</Label>
-                <Input
-                  type="file"
-                  accept="image/*"
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-                    
-                    // Показать локальный preview сразу
-                    const reader = new FileReader();
-                    reader.onload = (event) => {
-                      if (event.target?.result) {
-                        setFormData(prev => ({ ...prev, imageUrl: event.target?.result as string }));
-                      }
-                    };
-                    reader.readAsDataURL(file);
-                    
-                    // Затем загрузить на сервер
-                    setUploadingImage(true);
-                    try {
-                      const uploadFormData = new FormData();
-                      uploadFormData.append('file', file);
-                      const response = await fetch('/api/upload', {
-                        method: 'POST',
-                        body: uploadFormData,
-                      });
-                      if (response.ok) {
-                        const data = await response.json();
-                        if (data.success && data.data?.url) {
-                          setFormData(prev => ({ ...prev, imageUrl: data.data.url }));
-                        } else {
-                          console.error('Upload failed:', data);
+                
+                {/* Toggle */}
+                <div className="flex gap-4 mb-2">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="imageMode"
+                      checked={imageInputMode === 'file'}
+                      onChange={() => setImageInputMode('file')}
+                      className="w-4 h-4"
+                    />
+                    <span className="text-sm">Загрузить с ПК</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="imageMode"
+                      checked={imageInputMode === 'url'}
+                      onChange={() => setImageInputMode('url')}
+                      className="w-4 h-4"
+                    />
+                    <span className="text-sm">Ссылка</span>
+                  </label>
+                </div>
+
+                {imageInputMode === 'file' ? (
+                  <>
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        
+                        const reader = new FileReader();
+                        reader.onload = (event) => {
+                          if (event.target?.result) {
+                            setFormData(prev => ({ ...prev, imageUrl: event.target?.result as string }));
+                          }
+                        };
+                        reader.readAsDataURL(file);
+                        
+                        setUploadingImage(true);
+                        try {
+                          const uploadFormData = new FormData();
+                          uploadFormData.append('file', file);
+                          const response = await fetch('/api/upload', {
+                            method: 'POST',
+                            body: uploadFormData,
+                          });
+                          if (response.ok) {
+                            const data = await response.json();
+                            if (data.success && data.data?.url) {
+                              setFormData(prev => ({ ...prev, imageUrl: data.data.url }));
+                            }
+                          }
+                        } catch (error) {
+                          console.error('Upload failed:', error);
+                        } finally {
+                          setUploadingImage(false);
                         }
-                      } else {
-                        const errorData = await response.json();
-                        console.error('Upload error:', errorData);
-                        alert('Ошибка загрузки: ' + (errorData.message || 'Unknown error'));
-                      }
-                    } catch (error) {
-                      console.error('Upload failed:', error);
-                    } finally {
-                      setUploadingImage(false);
-                    }
-                  }}
-                />
-                {uploadingImage && <span className="text-sm text-gray-500 mt-1 block">Загрузка...</span>}
+                      }}
+                    />
+                    {uploadingImage && <span className="text-sm text-gray-500 mt-1 block">Загрузка...</span>}
+                  </>
+                ) : (
+                  <Input
+                    type="url"
+                    value={formData.imageUrl}
+                    onChange={(e) => setFormData(prev => ({ ...prev, imageUrl: e.target.value }))}
+                    placeholder="https://example.com/image.jpg"
+                  />
+                )}
+                
                 {formData.imageUrl && (
                   <div className="mt-2">
                     <img src={formData.imageUrl} alt="Preview" className="h-20 w-20 object-cover rounded" />
@@ -466,14 +496,6 @@ export default function AdminProducts() {
                     </button>
                   </div>
                 )}
-                <Input
-                  id="imageUrl"
-                  type="url"
-                  value={formData.imageUrl}
-                  onChange={(e) => setFormData(prev => ({ ...prev, imageUrl: e.target.value }))}
-                  placeholder="Или введите URL вручную"
-                  className="mt-2"
-                />
               </div>
 
               <div>

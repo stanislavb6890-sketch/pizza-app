@@ -373,6 +373,23 @@ model PromoCode {
   @@map("promo_codes")
 }
 
+model Banner {
+  id          String   @id @default(uuid())
+  title       String?
+  subtitle    String?
+  imageUrl    String
+  link        String?
+  linkText    String?
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([isActive])
+  @@index([sortOrder])
+  @@map("banners")
+}
+
 enum DiscountType {
   PERCENT
   FIXED

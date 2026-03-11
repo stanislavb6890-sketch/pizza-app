@@ -286,6 +286,12 @@ export default function AdminDashboard() {
                 🎟 Промокоды
               </a>
               <a
+                href="/admin/banners"
+                className="block p-3 rounded-md bg-gray-50 hover:bg-gray-100 text-gray-700"
+              >
+                🖼️ Банеры
+              </a>
+              <a
                 href="/admin/users"
                 className="block p-3 rounded-md bg-gray-50 hover:bg-gray-100 text-gray-700"
               >

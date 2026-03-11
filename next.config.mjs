@@ -3,6 +3,10 @@ const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   output: 'standalone',
+  outputFileTracingRoot: process.cwd(),
+  images: {
+    unoptimized: true,
+  },
   experimental: {
     // typedRoutes temporarily disabled due to Link type issues
   },

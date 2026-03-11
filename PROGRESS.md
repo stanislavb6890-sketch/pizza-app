@@ -117,6 +117,17 @@ Cart: localStorage (uniqueKey)
 git pull && npx prisma generate && npx prisma db push && npm run build && pm2 restart pizza-delivery
 ```
 
+## 📋 ЧЕКЛИСТ ПЕРЕД ДЕПЛОЕМ:
+- [ ] Проверить `npm run lint` (если есть)
+- [ ] Проверить `npm run build` локально
+- [ ] Проверить базу: `npx prisma generate`
+- [ ] Зайти на сайт проверить главную
+
+## 🚀 БЫСТРЫЙ ДЕПЛОЙ (без базы):
+```bash
+git pull && npm run build && pm2 restart pizza-delivery
+```
+
 ## 📞 КОНТАКТЫ РАЗРАБОТЧИКА
 ```
 GitHub: stanislavb6890-sketch/pizza-app
@@ -404,17 +415,30 @@ pm2 restart pizza-delivery
 
 ---
 
+## 2026-03-11 - UI Улучшения
+
+### Добавлено:
+- **Skeletons**: `components/ui/skeleton.tsx` - ProductCardSkeleton, CartItemSkeleton, MenuPageSkeleton, CartPageSkeleton
+- **Loading страницы**: `app/(public)/menu/loading.tsx`, `app/(public)/cart/loading.tsx`
+- **Framer Motion**: Анимации в ProductCard (hover scale), анимации появления/удаления в Cart
+- **Checkout**: Выбор способа оплаты (card/cash)
+- **CreateOrderUseCase**: Использует цену из корзины с extras
+
+### Установлено:
+- framer-motion
+
+---
+
 ## Последние коммиты
 
 | Хеш | Дата | Описание |
 |------|------|----------|
+| `ef194cd` | 2026-03-11 | feat: add checkout payment method, skeletons, and framer motion animations |
+| `4e15a1d` | 2026-03-11 | docs: update PROGRESS.md with all features |
 | `2734013` | 2026-03-11 | feat: add banners - model, API, admin page, home page with hits and discounts |
 | `4905aca` | 2026-03-11 | fix: favorites error, image upload, add categories to menu |
-| `dfd34c7` | 2026-03-11 | feat: add user account pages - profile, addresses, favorites with API |
 | `4355ff9` | 2026-03-11 | feat: add charts and stats to admin dashboard |
-| `579cf6a` | 2026-03-11 | fix: resolve favorites, cart extras, checkout auth, composition, image preview |
-| `c41e5ef` | 2026-03-11 | fix: resolve cart uniqueKey type error and useEffect dependencies |
-| `ac23d78` | 2026-03-10 | feat: add extras support to cart - separate items with different extras |
+| `dfd34c7` | 2026-03-11 | feat: add user account pages - profile, addresses, favorites with API |
 
 ---
 

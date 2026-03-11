@@ -22,6 +22,7 @@ export default function AdminBanners() {
   const [showForm, setShowForm] = useState(false);
   const [editingBanner, setEditingBanner] = useState<Banner | null>(null);
   const [saving, setSaving] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
     subtitle: '',
@@ -175,13 +176,51 @@ export default function AdminBanners() {
                   />
                 </div>
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">URL изображения *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Изображение баннера *</label>
                   <Input
-                    value={formData.imageUrl}
-                    onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
-                    placeholder="/uploads/banner.jpg"
-                    required
+                    type="file"
+                    accept="image/*"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      
+                      // Показать локальный preview сразу
+                      const reader = new FileReader();
+                      reader.onload = (event) => {
+                        if (event.target?.result) {
+                          setFormData(prev => ({ ...prev, imageUrl: event.target?.result as string }));
+                        }
+                      };
+                      reader.readAsDataURL(file);
+                      
+                      // Затем загрузить на сервер
+                      setUploadingImage(true);
+                      try {
+                        const uploadFormData = new FormData();
+                        uploadFormData.append('file', file);
+                        const response = await fetch('/api/upload', {
+                          method: 'POST',
+                          body: uploadFormData,
+                        });
+                        if (response.ok) {
+                          const data = await response.json();
+                          if (data.success && data.data?.url) {
+                            setFormData(prev => ({ ...prev, imageUrl: data.data.url }));
+                          }
+                        }
+                      } catch (error) {
+                        console.error('Upload failed:', error);
+                      } finally {
+                        setUploadingImage(false);
+                      }
+                    }}
                   />
+                  {uploadingImage && <span className="text-sm text-gray-500 mt-1 block">Загрузка...</span>}
+                  {formData.imageUrl && (
+                    <div className="mt-2">
+                      <img src={formData.imageUrl} alt="Preview" className="h-20 w-20 object-cover rounded" />
+                    </div>
+                  )}
                   <p className="text-xs text-gray-500 mt-1">Рекомендуемый размер: 1920x600px</p>
                 </div>
                 <div>

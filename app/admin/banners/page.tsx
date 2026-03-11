@@ -195,6 +195,7 @@ export default function AdminBanners() {
                       
                       // Затем загрузить на сервер
                       setUploadingImage(true);
+                      let uploadError = '';
                       try {
                         const uploadFormData = new FormData();
                         uploadFormData.append('file', file);
@@ -206,12 +207,20 @@ export default function AdminBanners() {
                           const data = await response.json();
                           if (data.success && data.data?.url) {
                             setFormData(prev => ({ ...prev, imageUrl: data.data.url }));
+                          } else {
+                            uploadError = 'Ошибка загрузки';
                           }
+                        } else {
+                          uploadError = 'Ошибка сервера';
                         }
                       } catch (error) {
                         console.error('Upload failed:', error);
+                        uploadError = 'Ошибка загрузки';
                       } finally {
                         setUploadingImage(false);
+                        if (uploadError) {
+                          alert(uploadError + '. Проверьте права на папку uploads на сервере.');
+                        }
                       }
                     }}
                   />
